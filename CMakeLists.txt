@@ -4,6 +4,9 @@ project(franka_motion_control)
 ## Compile as C++11, supported in ROS Kinetic and newer
 # add_compile_options(-std=c++11)
 
+set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
@@ -14,8 +17,11 @@ find_package(catkin REQUIRED COMPONENTS
 )
 
 ## System dependencies are found with CMake's conventions
+find_package(Franka REQUIRED)
+find_package(Eigen3 REQUIRED)
 # find_package(Boost REQUIRED COMPONENTS system)
-
+set(THREADS_PREFER_PTHREAD_FLAG ON)
+find_package(Threads REQUIRED)
 
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
@@ -103,10 +109,10 @@ find_package(catkin REQUIRED COMPONENTS
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-#  INCLUDE_DIRS include
-#  LIBRARIES franka_motion_control
-#  CATKIN_DEPENDS roscpp rospy std_msgs
-#  DEPENDS system_lib
+INCLUDE_DIRS include
+LIBRARIES franka_motion_control
+CATKIN_DEPENDS roscpp rospy std_msgs
+DEPENDS Franka
 )
 
 ###########
@@ -116,7 +122,7 @@ catkin_package(
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 include_directories(
-# include
+  include
   ${catkin_INCLUDE_DIRS}
 )
 
@@ -124,6 +130,38 @@ include_directories(
 # add_library(${PROJECT_NAME}
 #   src/${PROJECT_NAME}/franka_motion_control.cpp
 # )
+
+add_library(examples_common STATIC
+  src/examples_common.cpp
+)
+
+target_link_libraries(examples_common PUBLIC
+  ${Franka_LIBRARIES}
+  ${catkin_LIBRARIES}
+)
+target_include_directories(examples_common SYSTEM PUBLIC
+  ${Franka_INCLUDE_DIRS}
+  ${EIGEN3_INCLUDE_DIRS}
+  ${catkin_INCLUDE_DIRS}
+)
+target_include_directories(examples_common PUBLIC
+  include
+)
+
+set(EXAMPLES
+  generate_joint_position_motion
+  joint_position_control
+)
+
+foreach(example ${EXAMPLES})
+  add_executable(${example} src/${example}.cpp)
+  target_include_directories(examples_common SYSTEM PUBLIC
+    ${Franka_INCLUDE_DIRS}
+    ${EIGEN3_INCLUDE_DIRS}
+    ${catkin_INCLUDE_DIRS}
+  )
+  target_link_libraries(${example} Franka::Franka examples_common)
+endforeach()
 
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
@@ -204,3 +242,8 @@ include_directories(
 
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
+
+
+
+
+
