@@ -37,7 +37,9 @@ class MotionGenerator {
    * @param[in] q_goal Target joint positions.
    */
   // MotionGenerator(double speed_factor, const std::array<double, 7> q_goal);
-  MotionGenerator(double speed_factor, std::array<double, 7> q_goal);
+  // MotionGenerator(double speed_factor, std::array<double, 7> q_goal);
+  MotionGenerator(double speed_factor);
+
 
   /**
    * Sends joint position calculations
@@ -63,6 +65,7 @@ class MotionGenerator {
   Vector7d q_goal_;
   Vector7d q_start_;
   Vector7d delta_q_;
+  bool is_goal_set_;
 
   Vector7d dq_max_sync_;
   Vector7d t_1_sync_;

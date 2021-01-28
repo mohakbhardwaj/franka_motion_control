@@ -14,6 +14,7 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   rospy
   std_msgs
+  sensor_msgs
 )
 
 ## System dependencies are found with CMake's conventions
@@ -111,7 +112,7 @@ find_package(Threads REQUIRED)
 catkin_package(
 INCLUDE_DIRS include
 LIBRARIES franka_motion_control
-CATKIN_DEPENDS roscpp rospy std_msgs
+CATKIN_DEPENDS roscpp rospy std_msgs sensor_msgs
 DEPENDS Franka
 )
 
@@ -131,36 +132,38 @@ include_directories(
 #   src/${PROJECT_NAME}/franka_motion_control.cpp
 # )
 
-add_library(examples_common STATIC
-  src/examples_common.cpp
-)
+#add_library(examples_common STATIC
+#  src/examples_common.cpp
+#)
 
-target_link_libraries(examples_common PUBLIC
-  ${Franka_LIBRARIES}
-  ${catkin_LIBRARIES}
-)
-target_include_directories(examples_common SYSTEM PUBLIC
-  ${Franka_INCLUDE_DIRS}
-  ${EIGEN3_INCLUDE_DIRS}
-  ${catkin_INCLUDE_DIRS}
-)
-target_include_directories(examples_common PUBLIC
-  include
-)
+#target_link_libraries(examples_common PUBLIC
+#  ${Franka_LIBRARIES}
+#  ${catkin_LIBRARIES}
+#)
+#target_include_directories(examples_common SYSTEM PUBLIC
+#  ${Franka_INCLUDE_DIRS}
+#  ${EIGEN3_INCLUDE_DIRS}
+#  ${catkin_INCLUDE_DIRS}
+#)
+#target_include_directories(examples_common PUBLIC
+#  include
+#)
 
 set(EXAMPLES
-  generate_joint_position_motion
-  joint_position_control
+  joint_position_controller
 )
+#dummy_joint_pos_goal_publisher
+#generate_joint_position_motion
+#joint_position_control_node
 
 foreach(example ${EXAMPLES})
   add_executable(${example} src/${example}.cpp)
-  target_include_directories(examples_common SYSTEM PUBLIC
+  target_include_directories(${example} SYSTEM PUBLIC
     ${Franka_INCLUDE_DIRS}
     ${EIGEN3_INCLUDE_DIRS}
     ${catkin_INCLUDE_DIRS}
   )
-  target_link_libraries(${example} Franka::Franka examples_common)
+  target_link_libraries(${example} Franka::Franka) #examples_common
 endforeach()
 
 ## Add cmake target dependencies of the library

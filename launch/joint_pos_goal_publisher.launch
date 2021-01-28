@@ -1,0 +1,12 @@
+<?xml version="1.0" ?>
+
+<launch>
+  <arg name="publish_rate" default="100" />
+
+  <node name="dummy_joint_pos_goal_publisher" type="dummy_joint_pos_goal_publisher" pkg="franka_motion_control" output="screen">
+    <param name="publish_rate" value="$(arg publish_rate)" />
+    <rosparam command="load" file="$(find franka_motion_control)/config/robot_settings.yaml" />
+
+  </node>
+
+</launch>

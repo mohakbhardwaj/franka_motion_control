@@ -19,8 +19,21 @@ void setDefaultBehavior(franka::Robot& robot) {
   robot.setCartesianImpedance({{3000, 3000, 3000, 300, 300, 300}});
 }
 
-MotionGenerator::MotionGenerator(double speed_factor, std::array<double, 7> q_goal)
-    : q_goal_(q_goal.data()) {
+// MotionGenerator::MotionGenerator(double speed_factor, std::array<double, 7> q_goal)
+//     : q_goal_(q_goal.data()) {
+//   dq_max_ *= speed_factor;
+//   ddq_max_start_ *= speed_factor;
+//   ddq_max_goal_ *= speed_factor;
+//   dq_max_sync_.setZero();
+//   q_start_.setZero();
+//   delta_q_.setZero();
+//   t_1_sync_.setZero();
+//   t_2_sync_.setZero();
+//   t_f_sync_.setZero();
+//   q_1_.setZero();
+// }
+
+MotionGenerator::MotionGenerator(double speed_factor){
   dq_max_ *= speed_factor;
   ddq_max_start_ *= speed_factor;
   ddq_max_goal_ *= speed_factor;
@@ -31,7 +44,10 @@ MotionGenerator::MotionGenerator(double speed_factor, std::array<double, 7> q_go
   t_2_sync_.setZero();
   t_f_sync_.setZero();
   q_1_.setZero();
+  is_goal_set_ = false;
+
 }
+
 
 
 
@@ -117,25 +133,30 @@ franka::JointPositions MotionGenerator::operator()(const franka::RobotState& rob
                                                    franka::Duration period) {
   time_ += period.toSec();
 
-  if (time_ == 0.0) {
-    q_start_ = Vector7d(robot_state.q_d.data());
-    delta_q_ = q_goal_ - q_start_;
-    calculateSynchronizedValues();
+  if (is_goal_set_){
+    if (time_ == 0.0) {
+      q_start_ = Vector7d(robot_state.q_d.data());
+      delta_q_ = q_goal_ - q_start_;
+      calculateSynchronizedValues();
+    }
+
+    Vector7d delta_q_d;
+    bool motion_finished = calculateDesiredValues(time_, &delta_q_d);
+
+    std::array<double, 7> joint_positions;
+    Eigen::VectorXd::Map(&joint_positions[0], 7) = (q_start_ + delta_q_d);
+    franka::JointPositions output(joint_positions);
+    output.motion_finished = motion_finished;
+    return output;
+
   }
 
-  Vector7d delta_q_d;
-  bool motion_finished = calculateDesiredValues(time_, &delta_q_d);
 
-  std::array<double, 7> joint_positions;
-  Eigen::VectorXd::Map(&joint_positions[0], 7) = (q_start_ + delta_q_d);
-  franka::JointPositions output(joint_positions);
-  output.motion_finished = motion_finished;
-  return output;
 }
 
 void MotionGenerator::UpdateGoal(const std::array<double, 7>& q_goal){
 
   time_ = 0.0;
   q_goal_ = Vector7d(q_goal.data());
-
+  is_goal_set_ = true;
 }
