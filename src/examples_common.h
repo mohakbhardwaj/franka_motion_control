@@ -60,7 +60,7 @@ class MotionGenerator {
   bool calculateDesiredValues(double t, Vector7d* delta_q_d) const;
   void calculateSynchronizedValues();
 
-  static constexpr double kDeltaQMotionFinished = 1e-6;
+  static constexpr double kDeltaQMotionFinished = 1e-5;
   // const Vector7d q_goal_;
   Vector7d q_goal_;
   Vector7d q_start_;

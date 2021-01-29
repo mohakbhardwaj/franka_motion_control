@@ -132,38 +132,40 @@ include_directories(
 #   src/${PROJECT_NAME}/franka_motion_control.cpp
 # )
 
-#add_library(examples_common STATIC
-#  src/examples_common.cpp
-#)
-
-#target_link_libraries(examples_common PUBLIC
-#  ${Franka_LIBRARIES}
-#  ${catkin_LIBRARIES}
-#)
-#target_include_directories(examples_common SYSTEM PUBLIC
-#  ${Franka_INCLUDE_DIRS}
-#  ${EIGEN3_INCLUDE_DIRS}
-#  ${catkin_INCLUDE_DIRS}
-#)
-#target_include_directories(examples_common PUBLIC
-#  include
-#)
-
-set(EXAMPLES
-  joint_position_controller
+add_library(joint_position_controller STATIC
+  src/joint_position_controller.cpp
 )
+
+target_link_libraries(joint_position_controller PUBLIC
+  ${Franka_LIBRARIES}
+  ${catkin_LIBRARIES}
+)
+
+target_include_directories(joint_position_controller SYSTEM PUBLIC
+  ${Franka_INCLUDE_DIRS}
+  ${EIGEN3_INCLUDE_DIRS}
+  ${catkin_INCLUDE_DIRS}
+)
+target_include_directories(joint_position_controller PUBLIC
+  include
+)
+
+set(NODES
+  joint_position_control_node
+)
+
 #dummy_joint_pos_goal_publisher
 #generate_joint_position_motion
 #joint_position_control_node
 
-foreach(example ${EXAMPLES})
-  add_executable(${example} src/${example}.cpp)
-  target_include_directories(${example} SYSTEM PUBLIC
+foreach(node ${NODES})
+  add_executable(${node} src/${node}.cpp)
+  target_include_directories(${node} SYSTEM PUBLIC
     ${Franka_INCLUDE_DIRS}
     ${EIGEN3_INCLUDE_DIRS}
     ${catkin_INCLUDE_DIRS}
   )
-  target_link_libraries(${example} Franka::Franka) #examples_common
+ target_link_libraries(${node} joint_position_controller Franka::Franka)
 endforeach()
 
 ## Add cmake target dependencies of the library

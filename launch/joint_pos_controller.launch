@@ -1,0 +1,12 @@
+<?xml version="1.0" ?>
+
+<launch>
+  <arg name="robot_ip" default="172.16.0.2" />
+
+  <node name="joint_pos_controller" type="joint_position_control_node" pkg="franka_motion_control" output="screen">
+    <param name="robot_ip" value="$(arg robot_ip)" />
+    <rosparam command="load" file="$(find franka_motion_control)/config/robot_settings.yaml" />
+
+  </node>
+
+</launch>

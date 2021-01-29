@@ -1,11 +1,15 @@
-#ifndef JOINT_POSITION_CONTROLLER_
-#define JOINT_POSITION_CONTROLLER_
+#pragma once
 
-//some generically useful stuff to include...
-#include <math.h>
-#include <stdlib.h>
-#include <string>
-#include <vector>
+// #include <math.h>
+// #include <stdlib.h>
+// #include <string>
+// #include <vector>
+
+#include <algorithm>
+#include <array>
+#include <cmath>
+
+#include <Eigen/Core>
 
 #include <franka/exception.h>
 #include <franka/robot.h>
@@ -18,29 +22,54 @@
 
 // #include <example_srv/simple_bool_service_message.h> // this is a pre-defined service message, contained in shared "example_srv" package
 
-// define a class, including a constructor, member variables and member functions
 class JointPositionController
 {
 public:
-    JointPositionController(ros::NodeHandle* nodehandle); //"main" will need to instantiate a ROS nodehandle, then pass it to the constructor
-    // may choose to define public methods or public variables, if desired
+    JointPositionController(ros::NodeHandle* nodehandle, double dq_max); //std::string robot_ip
+    void setDefaultBehavior(franka::Robot& robot);
+    // franka::JointPositions operator()(const franka::RobotState& robot_state, franka::Duration period);
+    franka::JointPositions motion_generator_callback(const franka::RobotState& robot_state, franka::Duration period);
+    bool read_state_callback(const franka::RobotState& robot_state);
+    void setJointPositionGoal(std::array<double, 7>& q_goal);
+
 private:
+    using Vector7d = Eigen::Matrix<double, 7, 1, Eigen::ColMajor>;
+    using Vector7i = Eigen::Matrix<int, 7, 1, Eigen::ColMajor>;
+
     ros::NodeHandle nh_; // we will need this, to pass between "main" and constructor
     ros::Subscriber goal_subscriber_;     
     // ros::ServiceServer minimal_service_;
-    ros::Publisher  state_publisher_;
-    
-    // double val_from_subscriber_; //example member variable: better than using globals; convenient way to pass data from a subscriber to other member functions
-    // double val_to_remember_; // member variables will retain their values even as callbacks come and go
+    // ros::Publisher  state_publisher_;
+    // std::string robot_ip_;
+    // franka::Robot robot_;
+
+    sensor_msgs::JointState curr_goal_state_;
+    franka::RobotState curr_robot_state_;
+
+    Vector7d curr_q_goal_;
+    Vector7d curr_q_;
+    Vector7d delta_q_;
+    double time_ = 0.0;
+    double dq_max_;
+
+    static constexpr double kDeltaQMotionFinished = 1e-6;
+
+
+
+    // Vector7d dq_max_ = (Vector7d() << 2.0, 2.0, 2.0, 2.0, 2.5, 2.5, 2.5).finished();
+    // Vector7d ddq_max_start_ = (Vector7d() << 5, 5, 5, 5, 5, 5, 5).finished();
+    // Vector7d ddq_max_goal_ = (Vector7d() << 5, 5, 5, 5, 5, 5, 5).finished();
     
     // member methods as well:
-    // void initializeSubscribers(); // we will define some helper methods to encapsulate the gory details of initializing subscribers, publishers and services
+    void initializeSubscribers(); // we will define some helper methods to encapsulate the gory details of initializing subscribers, publishers and services
     // void initializePublishers();
     // void initializeServices();
     
-    void goalCallback(const sensor_msgs::JointState& msg); 
+    void goalCallback(const sensor_msgs::JointState& msg);
+     
+    // franka::JointPositions motion_generator_callback(const franka::RobotState& robot_state, franka::Duration period);
+    // void initiate_robot_control_loop();
     //prototype for callback for example service
     // bool serviceCallback(example_srv::simple_bool_service_messageRequest& request, example_srv::simple_bool_service_messageResponse& response);
-}; // note: a class definition requires a semicolon at the end of the definition
+};
 
-#endif  // this closes the header-include trick...ALWAYS need one of these to match #ifndef
