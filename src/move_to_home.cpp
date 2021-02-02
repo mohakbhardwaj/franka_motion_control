@@ -19,18 +19,16 @@ int main(int argc, char** argv)
     // ROS set-ups:
     ros::init(argc, argv, "JointPositionController"); //node name
 
-    ros::NodeHandle nh("~");
+    ros::NodeHandle nh;
 
     std::vector<std::string> joint_names;
     nh.getParam("joint_names", joint_names);
 
-    std::string robot_ip; // ="172.16.0.2";
-    nh.getParam("robot_ip", robot_ip);
-    ROS_INFO("robot_ip: %s", robot_ip.c_str());
-    
-    double dq_max;
-    nh.getParam("dq_max", dq_max);
-    ROS_INFO("dq_max %f", dq_max);
+    std::string robot_ip="172.16.0.2";
+    // nh.getParam("robot_ip", robot_ip);
+    // ROS_INFO(robot_ip);
+    double dq_max = 1.0;
+
 
     ROS_INFO("main: instantiating an object of type JointPositionController");
     JointPositionController controller(&nh, dq_max);  //instantiate an JointPositionController object and pass in pointer to nodehandle for constructor to use

@@ -152,6 +152,7 @@ target_include_directories(joint_position_controller PUBLIC
 
 set(NODES
   joint_position_control_node
+  robot_state_publisher
 )
 
 #dummy_joint_pos_goal_publisher

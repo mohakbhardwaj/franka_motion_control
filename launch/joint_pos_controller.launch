@@ -2,11 +2,20 @@
 
 <launch>
   <arg name="robot_ip" default="172.16.0.2" />
+  <!-- <arg name="state_publish_rate" default="1000" /> -->
+  <arg name="dq_max" default="0.1" />
 
   <node name="joint_pos_controller" type="joint_position_control_node" pkg="franka_motion_control" output="screen">
     <param name="robot_ip" value="$(arg robot_ip)" />
+    <param name="dq_max" value="$(arg dq_max)" />
     <rosparam command="load" file="$(find franka_motion_control)/config/robot_settings.yaml" />
-
   </node>
+<!-- 
+  <node name="robot_state_publisher" type="robot_state_publisher" pkg="franka_motion_control" output="screen">
+    <param name="robot_ip" value="$(arg robot_ip)" />
+    <param name="publish_rate" value="$(arg state_publish_rate)" />
+    <rosparam command="load" file="$(find franka_motion_control)/config/robot_settings.yaml" />
+  </node> -->
+
 
 </launch>

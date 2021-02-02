@@ -44,7 +44,6 @@ MotionGenerator::MotionGenerator(double speed_factor){
   t_2_sync_.setZero();
   t_f_sync_.setZero();
   q_1_.setZero();
-  is_goal_set_ = false;
 
 }
 
@@ -133,12 +132,12 @@ franka::JointPositions MotionGenerator::operator()(const franka::RobotState& rob
                                                    franka::Duration period) {
   time_ += period.toSec();
 
-  if (is_goal_set_){
-    if (time_ == 0.0) {
+  if (time_ == 0.0) {
       q_start_ = Vector7d(robot_state.q_d.data());
       delta_q_ = q_goal_ - q_start_;
       calculateSynchronizedValues();
     }
+    
 
     Vector7d delta_q_d;
     bool motion_finished = calculateDesiredValues(time_, &delta_q_d);
@@ -155,8 +154,6 @@ franka::JointPositions MotionGenerator::operator()(const franka::RobotState& rob
 }
 
 void MotionGenerator::UpdateGoal(const std::array<double, 7>& q_goal){
-
   time_ = 0.0;
   q_goal_ = Vector7d(q_goal.data());
-  is_goal_set_ = true;
 }

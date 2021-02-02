@@ -6,7 +6,7 @@
 #include <sensor_msgs/JointState.h>
 
 int main(int argc, char** argv) {
-  ros::init(argc, argv, "robot_joint_state_publisher");
+  ros::init(argc, argv, "robot_state_publisher");
   ros::NodeHandle node_handle("~");
 
   std::vector<std::string> joint_names;
@@ -34,7 +34,6 @@ int main(int argc, char** argv) {
 
   try {
     franka::Robot robot(robot_ip);
-
     robot.read([&](const franka::RobotState& robot_state) {
       states.header.stamp = ros::Time::now();
       for (size_t i = 0; i < joint_names.size(); i++) {

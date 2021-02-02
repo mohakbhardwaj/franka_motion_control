@@ -39,18 +39,20 @@ private:
     ros::NodeHandle nh_; // we will need this, to pass between "main" and constructor
     ros::Subscriber goal_subscriber_;     
     // ros::ServiceServer minimal_service_;
-    // ros::Publisher  state_publisher_;
+    ros::Publisher  state_publisher_;
     // std::string robot_ip_;
     // franka::Robot robot_;
 
+    sensor_msgs::JointState curr_robot_state_;
     sensor_msgs::JointState curr_goal_state_;
-    franka::RobotState curr_robot_state_;
+    // franka::RobotState curr_robot_state_;
 
     Vector7d curr_q_goal_;
     Vector7d curr_q_;
     Vector7d delta_q_;
     double time_ = 0.0;
     double dq_max_;
+    bool goal_pub_started_;
 
     static constexpr double kDeltaQMotionFinished = 1e-6;
 
@@ -62,14 +64,11 @@ private:
     
     // member methods as well:
     void initializeSubscribers(); // we will define some helper methods to encapsulate the gory details of initializing subscribers, publishers and services
-    // void initializePublishers();
+    void initializePublishers();
     // void initializeServices();
-    
     void goalCallback(const sensor_msgs::JointState& msg);
-     
-    // franka::JointPositions motion_generator_callback(const franka::RobotState& robot_state, franka::Duration period);
-    // void initiate_robot_control_loop();
-    //prototype for callback for example service
+    bool publishRobotState(const franka::RobotState& robot_state);
+         //prototype for callback for example service
     // bool serviceCallback(example_srv::simple_bool_service_messageRequest& request, example_srv::simple_bool_service_messageResponse& response);
 };
 
