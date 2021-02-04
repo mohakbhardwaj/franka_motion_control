@@ -1,10 +1,11 @@
+import numpy as np
 import rospy
 from sensor_msgs.msg import JointState
-# import stochastic_control
-from stochastic_control.mpc_tools.rollout.arm_reacher import ArmReacher
-from stochastic_control.mpc_tools.control import MPPI, StompMPPI
-from stochastic_control.mpc_tools.utils.state_filter import JointStateFilter
-from stochastic_control.mpc_tools.utils.mpc_process_wrapper import ControlProcess
+
+from mpc_tools.rollout.arm_reacher import ArmReacher
+from mpc_tools.control import MPPI, StompMPPI
+from mpc_tools.utils.state_filter import JointStateFilter
+from mpc_tools.utils.mpc_process_wrapper import ControlProcess
 
 import time
 import torch
@@ -12,8 +13,6 @@ torch.multiprocessing.set_start_method('spawn',force=True)
 
 class MPCController(object):
     def __init__(self, robot_state_topic, command_topic, mpc_yml_file, goal_state_list):
-        rospy.init_node("mpc_controller", anonymous=True)
-
         self.robot_state_topic = robot_state_topic
         self.command_topic = command_topic
         self.mpc_yml_file = mpc_yml_file
@@ -41,7 +40,6 @@ class MPCController(object):
         self.tstep = 0
         self.start_t = time.time()
 
-        rospy.spin()
 
 
     def state_callback(self, msg):
@@ -117,7 +115,13 @@ class MPCController(object):
 
 
 if __name__ == '__main__':
+    rospy.init_node("mpc_controller", anonymous=True)
+
+    mpc_yml_file = ""
     goal_list = np.zeros(6)
+
     mpc_controller = MPCController("joint_pos_controller/joint_states",
                                    "joint_pos_controller/joint_pos_goal",
+                                   mpc_yml_file,
                                    goal_list)
+    rospy.spin()
