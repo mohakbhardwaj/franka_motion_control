@@ -1,13 +1,18 @@
+#! /usr/bin/env python
+import os
 import numpy as np
 import rospy
+import rospkg
 from sensor_msgs.msg import JointState
+import time
+import yaml
 
 from mpc_tools.rollout.arm_reacher import ArmReacher
 from mpc_tools.control import MPPI, StompMPPI
 from mpc_tools.utils.state_filter import JointStateFilter
 from mpc_tools.utils.mpc_process_wrapper import ControlProcess
 
-import time
+
 import torch
 torch.multiprocessing.set_start_method('spawn',force=True)
 
@@ -86,7 +91,7 @@ class MPCController(object):
 
         
         mpc_tensor_dtype = {'device':device, 'dtype':float_dtype}
-        rollout_fn = ArmReacher(self.exp_params, device=device, float_dtype=float_dtype,world_params=world_params)
+        rollout_fn = ArmReacher(self.exp_params, device=device, float_dtype=float_dtype,world_params=None)
 
         mppi_params = self.exp_params['mppi']
 
@@ -117,7 +122,8 @@ class MPCController(object):
 if __name__ == '__main__':
     rospy.init_node("mpc_controller", anonymous=True)
 
-    mpc_yml_file = ""
+    mpc_yml_file = os.path.abspath(rospy.get_param('~mpc_yml_file'))
+    
     goal_list = np.zeros(6)
 
     mpc_controller = MPCController("joint_pos_controller/joint_states",
