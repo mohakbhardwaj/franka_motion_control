@@ -40,11 +40,11 @@ private:
     ros::Subscriber goal_subscriber_;     
     // ros::ServiceServer minimal_service_;
     ros::Publisher  state_publisher_;
-    // std::string robot_ip_;
-    // franka::Robot robot_;
+    ros::Publisher  command_publisher_;
 
     sensor_msgs::JointState curr_robot_state_;
     sensor_msgs::JointState curr_goal_state_;
+    sensor_msgs::JointState curr_joint_command_;
     // franka::RobotState curr_robot_state_;
 
     Vector7d curr_q_goal_;
@@ -68,6 +68,9 @@ private:
     // void initializeServices();
     void goalCallback(const sensor_msgs::JointState& msg);
     bool publishRobotState(const franka::RobotState& robot_state);
+    bool publishJointPosCommand(const franka::JointPositions& joint_pos_command);
+
+
          //prototype for callback for example service
     // bool serviceCallback(example_srv::simple_bool_service_messageRequest& request, example_srv::simple_bool_service_messageResponse& response);
 };

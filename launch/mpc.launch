@@ -4,11 +4,7 @@
   <arg name="publish_rate" default="100" />
   <arg name="mpc_yml_file" default="$(find franka_motion_control)/config/franka_reacher.yml" />
   
-  <!-- <node name="dummy_joint_pos_goal_publisher" type="dummy_joint_pos_goal_publisher" pkg="franka_motion_control" output="screen">
-    <param name="publish_rate" value="$(arg publish_rate)" />
-    <rosparam command="load" file="$(find franka_motion_control)/config/robot_settings.yaml" />
 
-  </node> -->
   <node name="mpc" type="mpc.py" pkg="franka_motion_control" output="screen">
     <rosparam command="load" file="$(find franka_motion_control)/config/robot_settings.yaml" />
     <param name="mpc_yml_file" value="$(arg mpc_yml_file)" />

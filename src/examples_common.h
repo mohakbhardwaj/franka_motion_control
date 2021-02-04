@@ -36,9 +36,9 @@ class MotionGenerator {
    * @param[in] speed_factor General speed factor in range [0, 1].
    * @param[in] q_goal Target joint positions.
    */
-  // MotionGenerator(double speed_factor, const std::array<double, 7> q_goal);
+  MotionGenerator(double speed_factor, const std::array<double, 7> q_goal);
   // MotionGenerator(double speed_factor, std::array<double, 7> q_goal);
-  MotionGenerator(double speed_factor);
+  // MotionGenerator(double speed_factor);
 
 
   /**

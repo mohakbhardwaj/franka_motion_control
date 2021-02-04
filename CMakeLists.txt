@@ -155,9 +155,6 @@ set(NODES
   robot_state_publisher
 )
 
-#dummy_joint_pos_goal_publisher
-#generate_joint_position_motion
-#joint_position_control_node
 
 foreach(node ${NODES})
   add_executable(${node} src/${node}.cpp)
@@ -168,6 +165,29 @@ foreach(node ${NODES})
   )
  target_link_libraries(${node} joint_position_controller Franka::Franka)
 endforeach()
+
+add_library(examples_common STATIC
+  src/examples_common.cpp)
+
+target_link_libraries(examples_common PUBLIC
+  ${Franka_LIBRARIES}
+  ${catkin_LIBRARIES}
+)
+
+target_include_directories(examples_common SYSTEM PUBLIC
+  ${Franka_INCLUDE_DIRS}
+  ${EIGEN3_INCLUDE_DIRS}
+  ${catkin_INCLUDE_DIRS}
+) 
+
+add_executable(move_to_home src/move_to_home.cpp)
+target_include_directories(move_to_home SYSTEM PUBLIC
+    ${Franka_INCLUDE_DIRS}
+    ${EIGEN3_INCLUDE_DIRS}
+    ${catkin_INCLUDE_DIRS}
+  )
+target_link_libraries(move_to_home examples_common Franka::Franka)
+
 
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries

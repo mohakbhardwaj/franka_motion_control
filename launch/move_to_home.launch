@@ -1,0 +1,11 @@
+<?xml version="1.0" ?>
+
+<launch>
+  <arg name="robot_ip" default="172.16.0.2" />
+
+  <node name="move_to_home" type="move_to_home" pkg="franka_motion_control" output="screen">
+    <param name="robot_ip" value="$(arg robot_ip)" type="str" />
+    <rosparam command="load" file="$(find franka_motion_control)/config/robot_settings.yaml" />
+  </node>
+
+</launch>

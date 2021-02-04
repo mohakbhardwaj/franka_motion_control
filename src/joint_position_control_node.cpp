@@ -32,7 +32,11 @@ int main(int argc, char** argv)
     nh.getParam("dq_max", dq_max);
     ROS_INFO("dq_max %f", dq_max);
 
-    ROS_INFO("main: instantiating an object of type JointPositionController");
+    bool debug;
+    nh.getParam("debug", debug);
+    ROS_INFO("Debug mode: %d",  debug);
+
+    ROS_INFO("main: instantiating JointPositionController");
     JointPositionController controller(&nh, dq_max);  //instantiate an JointPositionController object and pass in pointer to nodehandle for constructor to use
 
     try {
@@ -41,27 +45,30 @@ int main(int argc, char** argv)
         controller.setDefaultBehavior(robot);
         // First move the robot to a home joint configuration
         // std::array<double, 7> q_home ={{0, -M_PI_4, 0, -3 * M_PI_4, 0, M_PI_2, M_PI_4}};
-        // controller.setJointPositionGoal(q_home);
-        ROS_INFO("WARNING: This example will move the robot! \n"
-                 "Please make sure to have the user stop button at hand! \n"
-                 "Press Enter to continue... \n");
-        std::cin.ignore();
-        
-        // Un-comment if debugging and comment our robot.control
-        // robot.read([&](const franka::RobotState& robot_state) {
-        //     return controller.read_state_callback(robot_state);   
-            
-        // }
-        // );
-
-        robot.control([&](const franka::RobotState& robot_state, franka::Duration period) 
-                                       -> franka::JointPositions {
-            return controller.motion_generator_callback(robot_state, period);
+        // controller.setJointPositionGoal(q_home);   
+     
+        if(debug){
+            std::cout << "Here" << std::endl;
+            // reads robot state but does not execute commands
+            robot.read([&](const franka::RobotState& robot_state) {
+                return controller.read_state_callback(robot_state);               
+            }
+            );
         }
-        ) ;
-        
-
-        std::cout << "Finished motion." << std::endl;
+        else{
+            //actually controls the robot using published commands
+            ROS_INFO("WARNING: This example will move the robot! \n"
+                        "Please make sure to have the user stop button at hand! \n"
+                        "Press Enter to continue... \n");
+            std::cin.ignore();            
+            
+            robot.control([&](const franka::RobotState& robot_state, franka::Duration period) 
+                                       -> franka::JointPositions {
+                return controller.motion_generator_callback(robot_state, period);
+            }
+        );
+        }
+        ROS_INFO("Finished motion.");
 
 
     } catch (const franka::Exception& e) {

@@ -26,10 +26,22 @@ JointPositionController::JointPositionController(ros::NodeHandle* nodehandle, do
     delta_q_.setZero();
     goal_pub_started_ = false;
 
+
+    curr_goal_state_.effort.resize(7);
+    curr_goal_state_.name.resize(7);
+    curr_goal_state_.position.resize(7);
+    curr_goal_state_.velocity.resize(7);
+
     curr_robot_state_.effort.resize(7);
     curr_robot_state_.name.resize(7);
     curr_robot_state_.position.resize(7);
     curr_robot_state_.velocity.resize(7);
+
+    curr_joint_command_.effort.resize(7);
+    curr_joint_command_.name.resize(7);
+    curr_joint_command_.position.resize(7);
+    curr_joint_command_.velocity.resize(7);
+
 
     // can also do tests/waits to make sure all required services, topics, etc are alive
 }
@@ -55,11 +67,11 @@ void JointPositionController::initializeSubscribers(){
 void JointPositionController::initializePublishers(){
     ROS_INFO("Initializing Publisher");
     state_publisher_ = nh_.advertise<sensor_msgs::JointState>("joint_states", 1, false); 
+    command_publisher_ = nh_.advertise<sensor_msgs::JointState>("joint_pos_command", 1, false);
 }
 
 
 void JointPositionController::goalCallback(const sensor_msgs::JointState& msg) {
-    // ROS_INFO("updating goal state");
     curr_goal_state_ = msg;
     curr_q_goal_ = Eigen::VectorXd::Map(&curr_goal_state_.position[0], 7);
     goal_pub_started_ = true;
@@ -81,6 +93,17 @@ bool JointPositionController::publishRobotState(const franka::RobotState& robot_
     return true;
 }
 
+bool JointPositionController::publishJointPosCommand(const franka::JointPositions& joint_pos_command){
+    curr_joint_command_.header.stamp = ros::Time::now();
+    for (size_t i = 0; i < curr_joint_command_.position.size(); i++) {
+        curr_robot_state_.position[i] = joint_pos_command.q[i];
+        curr_robot_state_.velocity[i] = 0.0;
+        curr_robot_state_.effort[i] = 0.0;
+    }
+    command_publisher_.publish(curr_joint_command_);
+    return true;
+}
+
 franka::JointPositions JointPositionController::motion_generator_callback(const franka::RobotState& robot_state,
                                                                           franka::Duration period) {
     // int dt = period.toSec();
@@ -90,10 +113,7 @@ franka::JointPositions JointPositionController::motion_generator_callback(const 
     bool motion_finished;
 
     publishRobotState(robot_state);
-    // std::cout << "curr joint state object" << std::endl;
-    // for(size_t i = 0; i < 7; ++i){
-    //     std::cout << robot_state.q[i] << std::endl;
-    // }
+
     curr_q_ = Vector7d(robot_state.q_d.data());
 
     if(goal_pub_started_){
@@ -120,28 +140,28 @@ franka::JointPositions JointPositionController::motion_generator_callback(const 
     }
     else{
         delta_q_.setZero();
-        ROS_INFO("Goal not published...");
+        ROS_INFO("Waiting for goal...");
     }
 
     // calculate desired joint position
     Vector7d q_desired = curr_q_ + (delta_q_ * dt);
 
     std::array<double, 7> joint_positions;
-        Eigen::VectorXd::Map(&joint_positions[0], 7) = q_desired;
-        franka::JointPositions output(joint_positions);
+    Eigen::VectorXd::Map(&joint_positions[0], 7) = q_desired;
+    franka::JointPositions output(joint_positions);
 
-        if(!ros::ok()){
-            ROS_INFO("Ros shutdown");
-            motion_finished = true;
-        }
-        else{
-            motion_finished = false; //std::all_of(joint_motion_finished.cbegin(), joint_motion_finished.cend(),
-                                        //     [](bool x) { return x; });
-        }    
+    if(!ros::ok()){
+        ROS_INFO("Ros shutdown");
+        motion_finished = true;
+    }
+    else{
+        motion_finished = false; //std::all_of(joint_motion_finished.cbegin(), joint_motion_finished.cend(),
+                                    //     [](bool x) { return x; });
+    }    
 
-        output.motion_finished = motion_finished;
+    output.motion_finished = motion_finished;
 
-
+    publishJointPosCommand(output);
 
     ros::spinOnce();
     return output;
@@ -150,7 +170,6 @@ franka::JointPositions JointPositionController::motion_generator_callback(const 
   }
 
 bool JointPositionController::read_state_callback(const franka::RobotState& robot_state){
-
     franka::Duration period(0);
     motion_generator_callback(robot_state, period);
     ros::spinOnce();
