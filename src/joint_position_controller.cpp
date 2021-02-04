@@ -54,7 +54,7 @@ void JointPositionController::initializeSubscribers(){
 
 void JointPositionController::initializePublishers(){
     ROS_INFO("Initializing Publisher");
-    state_publisher_ = nh_.advertise<sensor_msgs::JointState>("joint_states", 1, true); 
+    state_publisher_ = nh_.advertise<sensor_msgs::JointState>("joint_states", 1, false); 
 }
 
 

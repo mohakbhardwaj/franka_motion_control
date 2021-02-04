@@ -1,0 +1,96 @@
+##
+## Copyright (c) 2020-2021 NVIDIA CORPORATION.  All rights reserved.
+##
+## NVIDIA CORPORATION and its licensors retain all intellectual property
+## and proprietary rights in and to this software, related documentation
+## and any modifications thereto.  Any use, reproduction, disclosure or
+## distribution of this software and related documentation without an express
+## license agreement from NVIDIA CORPORATION is strictly prohibited.
+##
+##
+
+# @package _global_
+use_cuda: True
+cuda_device_num: 0
+
+#dynamics_dt: 0.01
+run_open_loop: False
+control_space: 'acc'
+float_dtype: 'float32'
+model:
+  urdf_path: "urdf/ur10/ur10_joint_limited_robot.urdf"
+  learnable_rigid_body_config:
+    learnable_links: []
+  name: "ur10_model"
+  dt: 0.01
+  max_acc: 1.0 #10.0
+  #control_freq: 10
+  #sim_freq: 100
+  ee_link_name: "ee_link"
+
+cost:
+  goal_pose:
+    vec_weight: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+    weight: [50.0,50.0]
+    position_gaussian_params: {'n':0, 'c':0.2, 's':0.0, 'r':10.0}
+    orientation_gaussian_params: {'n':0, 'c':0.2, 's':0.0, 'r':10.0}
+    hinge_val: -1
+
+  zero_vel:
+    weight: 0.0
+    hinge_val: 0.01
+    gaussian_params: {'n':0, 'c':0.01, 's':0, 'r':1.0}
+
+  zero_acc:
+    weight: 0.01 #0.01
+    hinge_val: -1
+    gaussian_params: {'n':0, 'c':0.2, 's':0, 'r':5.0}
+  
+  collision:
+    weight: 100.0
+    gaussian_params: {'n':0, 'c':0.5, 's':0, 'r':5.0}
+  #zero_vel_cost_weight: 0.0
+  #vel_hinge_val: 0.2
+  #zero_vel_gaussian_params: {'n':0, 'c':0, 's':0, 'r':0}
+
+  null_space:
+    weight: 1.0 #0.05 #0.5 #1.0
+    gaussian_params: {'n':0, 'c':0.1, 's':0, 'r':1.0}
+    vec_weight: [0.01, 0.0, 1.0, 0.0, 0.1, 0.0]
+    #retract_state : [-1.57, -1.2, 1.9, -1.383, -1.57, 0.00]
+  jacobian_cost_weight: 0.0 #2
+
+  joint_l2:
+    weight: 0.0
+    gaussian_params: {'n':0, 'c':0.2, 's':0, 'r':5.0}
+  
+  control_cost_weight: 0.0
+  jerk_cost_weight: 0.0
+  
+  retract_state : [-1.57, -1.2, 1.9, -1.383, -1.57, 0.00]
+  retract_weight: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+
+#acc control
+mppi:
+  horizon           : 50
+  init_cov          : 0.5
+  filter_coeffs     : [0.2, 0.3, 0.5] #[0.25, 0.8, 0.0]
+  gamma             : 0.99
+  n_iters           : 1
+  step_size_mean    : 0.9
+  step_size_cov     : 0.6
+  beta              : 0.01
+  alpha             : 1
+  num_particles     : 500 #10000
+  update_cov        : False
+  cov_type          : 'full_HAxHA' #'full_HAxHA' # stomp_jerk
+  kappa             : 0.01
+  null_act_frac     : 0.0
+  sample_mode       : 'mean'
+  base_action       : 'repeat'
+  squash_fn         : 'clamp'
+  hotstart          : True
+  fixed_samples     : True
+  halton_samples    : True
+  sobol_samples     : False
+  sample_type       : ''

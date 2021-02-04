@@ -36,12 +36,7 @@ def goal_pub():
         rate.sleep()
 
 if __name__ == '__main__':
-    pub = rospy.Publisher('joint_pos_controller/joint_pos_goal', JointState, queue_size=10)
+    pub = rospy.Publisher('joint_pos_controller/joint_pos_goal', JointState, queue_size=1)
     sub = rospy.Subscriber("joint_pos_controller/joint_states", JointState, state_callback)
     rospy.init_node('joint_pos_goal_publisher', anonymous=True)
-    rate = rospy.Rate(100)
-
-    try:
-        goal_pub()
-    except rospy.ROSInterruptException:
-        pass
+    # rate = rospy.Rate(100)
