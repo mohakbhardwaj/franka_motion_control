@@ -35,7 +35,7 @@ x_des_list = [franka_bl_state, franka_br_state]#, drop_state, home_state]
 
 
 class MPCController(object):
-    def __init__(self, robot_state_topic, command_topic, mpc_yml_file, goal_state_list):
+    def __init__(self, robot_state_topic, command_topic, mpc_yml_file, goal_state_list, debug=False):
         self.robot_state_topic = robot_state_topic
         self.command_topic = command_topic
         self.mpc_yml_file = mpc_yml_file
@@ -67,6 +67,13 @@ class MPCController(object):
         self.start_control = False
         self.zero_acc = np.zeros(7)
         self.tstep = 0
+        self.debug = debug
+        if self.debug:
+            self.robot_q_list = []
+            self.command_q_list = []
+            self.command_qdd_list = []
+
+
 
     def state_callback(self, msg):
 
@@ -74,13 +81,10 @@ class MPCController(object):
         curr_state_np = np.hstack((msg.position, msg.velocity, self.zero_acc))
         curr_state_dict = {'position': np.array(msg.position), 'velocity': np.array(msg.velocity)}
         curr_state = torch.as_tensor(curr_state_np) #.unsqueeze(0)        
-
-        # if self.start_control:
         
-        s1=time.time()
         next_command, val, info = self.control_process.get_command(self.tstep, curr_state)
-        print('total control process time', time.time()-s1)
-        # input('..')
+        print(self.control_process.mpc_dt)
+
 
         if(self.exp_params['control_space'] == 'acc'):
             qdd_des = np.ravel(next_command[0])
@@ -93,7 +97,7 @@ class MPCController(object):
         elif(self.exp_params['control_space'] == 'pos'):
             self.curr_mpc_command.position = np.ravel(next_command[0])
             self.curr_mpc_command.velocity = np.zeros(7)
-            self.curr_mpc_command.effort = cmd_des['acc']
+            self.curr_mpc_command.effort = np.zeros(7)
         
         self.pub.publish(self.curr_mpc_command)
         rospy.loginfo('Command published')
@@ -108,9 +112,12 @@ class MPCController(object):
 
 
         self.tstep = time.time() - self.start_t #TODO: Check this versus ros::Time now and state timestamp
-    
-
-
+        if self.debug:
+            self.robot_q_list.append(msg.position)
+            self.command_q_list.append(self.curr_mpc_command.position)
+            self.command_qdd_list.append(np.ravel(next_command[0]))
+        
+        
     def initialize_mpc_controller(self):
 
         with open(self.mpc_yml_file) as file:
@@ -150,7 +157,15 @@ class MPCController(object):
         self.controller = MPPI(**mppi_params)
         self.control_process = ControlProcess(self.controller)
         self.controller.rollout_fn.dynamics_model.robot_model.load_lxml_objects()
-
+    
+    def close(self):
+        if self.debug:
+            # with open('/home/mohak/catkin_ws/src/franka_motion_control/data/mpc_data.npz', 'wb') as f:
+            np.savez('/home/mohak/catkin_ws/src/franka_motion_control/data/mpc_data.npz', 'wb', 
+                    q_robot = self.robot_q_list, 
+                    q_cmd = self.command_q_list,
+                    qdd_cmd = self.command_qdd_list)
+            print('Logs dumped')
 
 if __name__ == '__main__':
     rospy.init_node("mpc_controller", anonymous=True)
@@ -158,9 +173,15 @@ if __name__ == '__main__':
     # mpc_yml_file = join_path(mpc_configs_path(), robot_params['mpc_yml'])
     mpc_yml_file = os.path.abspath(rospy.get_param('~mpc_yml_file'))
     
+    debug = rospy.get_param('~debug')
 
     mpc_controller = MPCController("joint_pos_controller/joint_states",
                                    "joint_pos_controller/joint_pos_goal",
                                    mpc_yml_file,
-                                   x_des_list)
-    rospy.spin()
+                                   x_des_list,
+                                   debug)
+    while not rospy.is_shutdown():
+        rospy.spin()
+    
+    print('Closing MPC Controller')
+    mpc_controller.close()
