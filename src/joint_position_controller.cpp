@@ -85,9 +85,9 @@ void JointPositionController::setJointPositionGoal(std::array<double, 7>& q_goal
 bool JointPositionController::publishRobotState(const franka::RobotState& robot_state){
     curr_robot_state_.header.stamp = ros::Time::now();
     for (size_t i = 0; i < curr_robot_state_.position.size(); i++) {
-        curr_robot_state_.position[i] = robot_state.q_d[i];
+        curr_robot_state_.position[i] = robot_state.q_d[i]; //robot_state.q_d[i];
         curr_robot_state_.velocity[i] = robot_state.dq[i];
-        curr_robot_state_.effort[i] = robot_state.tau_J[i];
+        curr_robot_state_.effort[i] = robot_state.dq_d[i];
     }
     state_publisher_.publish(curr_robot_state_);
     return true;
@@ -120,7 +120,7 @@ franka::JointPositions JointPositionController::motion_generator_callback(const 
         delta_q_ = (curr_q_goal_ - curr_q_)/ dt;
 
         double max_delta_q = delta_q_.lpNorm<Eigen::Infinity>();
-        std::cout << delta_q_[0] << " " << max_delta_q <<  std::endl;
+        // std::cout << delta_q_[0] << " " << max_delta_q <<  std::endl;
 
         //Normalize delta_q to respect limits
         if(max_delta_q > dq_max_){
@@ -133,7 +133,7 @@ franka::JointPositions JointPositionController::motion_generator_callback(const 
         std::cout << delta_q_[0] << std::endl;
         for (size_t i = 0; i < 7; i++) {
             if (std::abs(delta_q_[i]) <= kDeltaQMotionFinished) {
-                delta_q_[i] = 0.0;
+                // delta_q_[i] = 0.0;
                 joint_motion_finished[i] = true;
             }
         } 
