@@ -95,7 +95,7 @@ mppi:
   n_iters           : 1
   step_size_mean    : 0.9
   step_size_cov     : 0.9
-  beta              : 0.001
+  beta              : 1.0
   alpha             : 1
   num_particles     : 400 #10000
   update_cov        : False
@@ -109,6 +109,6 @@ mppi:
   sample_params:
     type: 'halton_stomp'
     fixed_samples: True
-    sample_ratio: 1.0
+    sample_ratio: 0.5
     seed: 0
     filter_coeffs: [0.2, 0.3, 0.5]
