@@ -90,10 +90,10 @@ cost:
 
 mppi:
   horizon           : 50
-  init_cov          : 0.05 #0.5
-  gamma             : 0.97
+  init_cov          : 0.001 #0.5
+  gamma             : 0.99
   n_iters           : 1
-  step_size_mean    : 1.0
+  step_size_mean    : 0.9
   step_size_cov     : 0.9
   beta              : 0.001
   alpha             : 1
@@ -109,6 +109,6 @@ mppi:
   sample_params:
     type: 'halton_stomp'
     fixed_samples: True
-    sample_ratio: 0.6
+    sample_ratio: 1.0
     seed: 0
     filter_coeffs: [0.2, 0.3, 0.5]

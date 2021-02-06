@@ -1,13 +1,14 @@
 <?xml version="1.0" ?>
 
 <launch>
-  <arg name="publish_rate" default="100" />
   <arg name="mpc_yml_file" default="$(find franka_motion_control)/config/franka_reacher.yml" />
+  <arg name="control_freq" default="100" />
   <arg name="debug" default="False" />
 
   <node name="mpc" type="mpc.py" pkg="franka_motion_control" output="screen">
     <rosparam command="load" file="$(find franka_motion_control)/config/robot_settings.yaml" />
     <param name="mpc_yml_file" value="$(arg mpc_yml_file)" />
+    <param name="control_freq" value="$(arg control_freq)" />
     <param name="debug" value="$(arg debug)" />
 
   </node>

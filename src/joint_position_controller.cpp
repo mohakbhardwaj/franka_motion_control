@@ -87,7 +87,7 @@ bool JointPositionController::publishRobotState(const franka::RobotState& robot_
     for (size_t i = 0; i < curr_robot_state_.position.size(); i++) {
         curr_robot_state_.position[i] = robot_state.q_d[i];
         curr_robot_state_.velocity[i] = robot_state.dq[i];
-        curr_robot_state_.effort[i] = robot_state.tau_J[i];
+        curr_robot_state_.effort[i] = robot_state.dq_d[i] //robot_state.tau_J[i];
     }
     state_publisher_.publish(curr_robot_state_);
     return true;

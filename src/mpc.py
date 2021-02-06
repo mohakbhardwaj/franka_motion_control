@@ -35,10 +35,11 @@ x_des_list = [franka_bl_state, franka_br_state]#, drop_state, home_state]
 
 
 class MPCController(object):
-    def __init__(self, robot_state_topic, command_topic, mpc_yml_file, goal_state_list, debug=False):
+    def __init__(self, robot_state_topic, command_topic, mpc_yml_file, goal_state_list, control_freq, debug=False):
         self.robot_state_topic = robot_state_topic
         self.command_topic = command_topic
         self.mpc_yml_file = mpc_yml_file
+        self.control_freq = control_freq
         # with open(mpc_yml_file) as file:
         #     self.self.exp_params = yaml.load(file, Loader=yaml.FullLoader)
 
@@ -53,71 +54,107 @@ class MPCController(object):
 
         self.control_process.update_goal(goal_state=self.curr_goal)
         self.controller.rollout_fn.update_goal(goal_state=self.curr_goal)
-        self.robot_filter = JointStateFilter()
+        self.robot_command_filter = JointStateFilter(filter_coeff={'position': 1.0, 'velocity': 0.05})
+        self.robot_state_filter = JointStateFilter(filter_coeff={'position': 0.5, 'velocity': 0.1}, dt=0.0)
 
         rospy.loginfo('MPC Controller Initialized')
 
         #Initialize ROS
         self.pub = rospy.Publisher(self.command_topic, JointState, queue_size=1, latch=False)
         self.sub = rospy.Subscriber(self.robot_state_topic, JointState, self.state_callback)
+        self.rate = rospy.Rate(self.control_freq)
 
         #Variables for book-keeping
-        self.curr_robot_state = JointState()
+        self.curr_state_raw = None
+        self.curr_state_filtered = None
+        self.curr_state_raw_dict = {}
+        self.curr_state_filtered_dict = {}
         self.curr_mpc_command = JointState()
         self.start_control = False
         self.zero_acc = np.zeros(7)
+        self.prev_acc = np.zeros(7)
         self.tstep = 0
         self.debug = debug
         if self.debug:
-            self.robot_q_list = []
+            self.robot_q_list_r = []
+            self.robot_qd_list_r = []
+            self.robot_qd_des_list_r = []
+            self.robot_q_list_f = []
+            self.robot_qd_list_f = []
+            self.robot_qd_des_list_f = []
             self.command_q_list = []
             self.command_qdd_list = []
 
-
-
     def state_callback(self, msg):
-
-        self.curr_robot_state = msg
-        curr_state_np = np.hstack((msg.position, msg.velocity, self.zero_acc))
-        curr_state_dict = {'position': np.array(msg.position), 'velocity': np.array(msg.velocity)}
-        curr_state = torch.as_tensor(curr_state_np) #.unsqueeze(0)        
+        self.curr_state_raw = msg
         
-        next_command, val, info = self.control_process.get_command(self.tstep, curr_state)
-        print(self.control_process.mpc_dt)
+        # #truncate the velocities
+        # self.curr_state_raw.velocity = np.where(np.abs(self.curr_state_raw.velocity) > 0.05, 
+        #                                         self.curr_state_raw.velocity, 0.0)
+        #filter states
+        self.curr_state_raw_dict = self.joint_state_to_dict(self.curr_state_raw)
 
+        #filter velocity only
+        self.curr_state_filtered_dict = self.curr_state_raw_dict
+        self.curr_state_filtered_dict['velocity'] = self.robot_state_filter.filter_joint_state({'velocity': self.curr_state_raw_dict['velocity']})['velocity']
+        self.curr_state_filtered = self.dict_to_joint_state(self.curr_state_filtered_dict)
 
-        if(self.exp_params['control_space'] == 'acc'):
-            qdd_des = np.ravel(next_command[0])
-            cmd_des = self.robot_filter.integrate_acc(qdd_des, curr_state_dict)#['position']
-            # q_des = cmd_des['position']
-            self.curr_mpc_command.position = cmd_des['position']
-            self.curr_mpc_command.velocity = cmd_des['velocity']
-            self.curr_mpc_command.effort = np.zeros(7) #What is the third key here??
+    
+    def control_loop(self):
         
-        elif(self.exp_params['control_space'] == 'pos'):
-            self.curr_mpc_command.position = np.ravel(next_command[0])
-            self.curr_mpc_command.velocity = np.zeros(7)
-            self.curr_mpc_command.effort = np.zeros(7)
+        while not rospy.is_shutdown():
         
-        self.pub.publish(self.curr_mpc_command)
-        rospy.loginfo('Command published')
-        
-        if self.tstep == 0:
-            self.start_t = time.time()
+            if self.curr_state_raw is not None:
+                
+                curr_state_np = np.hstack((self.curr_state_filtered_dict['position'], 
+                                           self.curr_state_filtered_dict['velocity'], 
+                                           self.prev_acc))
+                # curr_state_dict = {'position': np.array(self.curr_robot_state.position),
+                #                    'velocity': np.array(self.curr_robot_state.velocity)}
+                curr_state = torch.as_tensor(curr_state_np)      
+                
+                next_command, val, info = self.control_process.get_command(self.tstep, curr_state)
 
-        # else:
-        #     #initialize joint filter
-        #     self.start_control = True
-        #     rospy.loginfo('MPC: JointStateFilter Initialized')
+                if(self.exp_params['control_space'] == 'acc'):
+                    qdd_des = np.ravel(next_command[0])
+                    cmd_des = self.robot_command_filter.integrate_acc(qdd_des, self.curr_state_filtered_dict)
+                    self.curr_mpc_command.position = cmd_des['position']
+                    self.curr_mpc_command.velocity = cmd_des['velocity']
+                    self.curr_mpc_command.effort = np.zeros(7) #What is the third key here??
+                    self.prev_acc = qdd_des
+                
+                elif(self.exp_params['control_space'] == 'pos'):
+                    self.curr_mpc_command.position = np.ravel(next_command[0])
+                    self.curr_mpc_command.velocity = np.zeros(7)
+                    self.curr_mpc_command.effort = np.zeros(7)
+                
+                self.pub.publish(self.curr_mpc_command)
+                rospy.loginfo('Command published')
+                
+                if self.tstep == 0:
+                    self.start_t = time.time()
 
+                self.tstep = time.time() - self.start_t #TODO: Check this versus ros::Time now and state timestamp
 
-        self.tstep = time.time() - self.start_t #TODO: Check this versus ros::Time now and state timestamp
-        if self.debug:
-            self.robot_q_list.append(msg.position)
-            self.command_q_list.append(self.curr_mpc_command.position)
-            self.command_qdd_list.append(np.ravel(next_command[0]))
+                if self.debug:
+                    self.robot_q_list_r.append(self.curr_state_raw.position)
+                    self.robot_qd_list_r.append(self.curr_state_raw.velocity)
+                    self.robot_qd_des_list_r.append(self.curr_state_raw.effort)
+                    
+                    self.robot_q_list_f.append(self.curr_state_filtered.position)
+                    self.robot_qd_list_f.append(self.curr_state_filtered.velocity)
+                    self.robot_qd_des_list_f.append(self.curr_state_filtered.effort)
+                    
+                    self.command_q_list.append(self.curr_mpc_command.position)
+                    self.command_qdd_list.append(np.ravel(next_command[0]))
+                
+                self.rate.sleep()
+            else:
+                rospy.loginfo('Waiting for state')
         
-        
+        self.close()
+    
+
     def initialize_mpc_controller(self):
 
         with open(self.mpc_yml_file) as file:
@@ -159,29 +196,48 @@ class MPCController(object):
         self.controller.rollout_fn.dynamics_model.robot_model.load_lxml_objects()
     
     def close(self):
+        print('Closing MPC Controller')
         if self.debug:
-            # with open('/home/mohak/catkin_ws/src/franka_motion_control/data/mpc_data.npz', 'wb') as f:
             np.savez('/home/mohak/catkin_ws/src/franka_motion_control/data/mpc_data.npz', 'wb', 
-                    q_robot = self.robot_q_list, 
+                    q_robot_r = self.robot_q_list_r, 
+                    qd_robot_r = self.robot_qd_list_r,
+                    qd_des_robot_r = self.robot_qd_des_list_r,
+                    q_robot_f = self.robot_q_list_f, 
+                    qd_robot_f = self.robot_qd_list_f,
+                    qd_des_robot_f = self.robot_qd_des_list_f,
                     q_cmd = self.command_q_list,
                     qdd_cmd = self.command_qdd_list)
             print('Logs dumped')
+
+    def joint_state_to_dict(self, msg):
+        return {'position': np.array(msg.position), 
+                'velocity': np.array(msg.velocity)}
+    
+    def dict_to_joint_state(self, dict):
+        msg = JointState()
+        msg.position = dict['position']
+        msg.velocity = dict['velocity']
+        return msg
 
 if __name__ == '__main__':
     rospy.init_node("mpc_controller", anonymous=True)
 
     # mpc_yml_file = join_path(mpc_configs_path(), robot_params['mpc_yml'])
     mpc_yml_file = os.path.abspath(rospy.get_param('~mpc_yml_file'))
-    
+    control_freq = rospy.get_param('~control_freq')
     debug = rospy.get_param('~debug')
 
     mpc_controller = MPCController("joint_pos_controller/joint_states",
                                    "joint_pos_controller/joint_pos_goal",
                                    mpc_yml_file,
                                    x_des_list,
+                                   control_freq,
                                    debug)
-    while not rospy.is_shutdown():
-        rospy.spin()
-    
-    print('Closing MPC Controller')
-    mpc_controller.close()
+    # while not rospy.is_shutdown():
+    #     rospy.spin()
+    # rospy.loginfo("""WARNING: This example will move the robot! \n
+    #               Please make sure to have the user stop button at hand! \n
+    #               Press Enter to continue... \n""")
+    # input()
+    rospy.loginfo('Initiating MPC Control Loop')
+    mpc_controller.control_loop()
