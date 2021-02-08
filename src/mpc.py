@@ -3,6 +3,7 @@ import os
 import numpy as np
 import rospy
 import rospkg
+from geometry_msgs.msg import PoseStamped
 from sensor_msgs.msg import JointState
 import time
 import torch
@@ -35,9 +36,10 @@ x_des_list = [franka_bl_state, franka_br_state]#, drop_state, home_state]
 
 
 class MPCController(object):
-    def __init__(self, robot_state_topic, command_topic, mpc_yml_file, goal_state_list, control_freq, debug=False):
+    def __init__(self, robot_state_topic, command_topic, goal_topic, mpc_yml_file, goal_state_list, control_freq, debug=False):
         self.robot_state_topic = robot_state_topic
         self.command_topic = command_topic
+        self.goal_topic = goal_topic
         self.mpc_yml_file = mpc_yml_file
         self.control_freq = control_freq
         # with open(mpc_yml_file) as file:
@@ -61,7 +63,8 @@ class MPCController(object):
 
         #Initialize ROS
         self.pub = rospy.Publisher(self.command_topic, JointState, queue_size=1, latch=False)
-        self.sub = rospy.Subscriber(self.robot_state_topic, JointState, self.state_callback)
+        self.state_sub = rospy.Subscriber(self.robot_state_topic, JointState, self.state_callback)
+        self.goal_sub = rospy.Subscriber(self.goal_topic, PoseStamped, self.goal_callback)
         self.rate = rospy.Rate(self.control_freq)
 
         #Variables for book-keeping
@@ -69,6 +72,7 @@ class MPCController(object):
         self.curr_state_filtered = None
         self.curr_state_raw_dict = {}
         self.curr_state_filtered_dict = {}
+        self.curr_ee_goal = None
         self.curr_mpc_command = JointState()
         self.start_control = False
         self.zero_acc = np.zeros(7)
@@ -99,6 +103,9 @@ class MPCController(object):
         self.curr_state_filtered_dict['velocity'] = self.robot_state_filter.filter_joint_state({'velocity': self.curr_state_raw_dict['velocity']})['velocity']
         self.curr_state_filtered = self.dict_to_joint_state(self.curr_state_filtered_dict)
 
+
+    def goal_callback(self, msg):
+        self.curr_ee_goal = msg
     
     def control_loop(self):
         
@@ -229,6 +236,7 @@ if __name__ == '__main__':
 
     mpc_controller = MPCController("joint_pos_controller/joint_states",
                                    "joint_pos_controller/joint_pos_goal",
+                                   "ee_goal",
                                    mpc_yml_file,
                                    x_des_list,
                                    control_freq,
