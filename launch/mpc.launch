@@ -8,7 +8,7 @@
   <param name="franka_robot_description" textfile="/home/mohak/workspace/stochastic_control/content/assets/urdf/franka_description/franka_panda_no_gripper.urdf" />
 
 
-  <!-- <node name="goal_manager" type="goal_manager.py" pkg="franka_motion_control" output="screen">
+  <node name="goal_manager" type="goal_manager.py" pkg="franka_motion_control" output="screen">
     <param name="goal_pub_freq" value="$(arg goal_pub_freq)" />
   </node>
 
@@ -18,12 +18,12 @@
     <param name="control_freq" value="$(arg control_freq)" />
     <param name="debug" value="$(arg debug)" />
 
-  </node> -->
-
+  </node>
+<!-- 
    <node pkg="robot_state_publisher" type="robot_state_publisher" name="rob_st_pub" >
       <remap from="robot_description" to="franka_robot_description" />
 
-    </node>
+    </node> -->
 
 
 </launch>

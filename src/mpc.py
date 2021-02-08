@@ -45,21 +45,24 @@ class MPCController(object):
         # with open(mpc_yml_file) as file:
         #     self.self.exp_params = yaml.load(file, Loader=yaml.FullLoader)
 
-        self.goal_state_list = goal_state_list
-        self.curr_goal_idx = 0
-        self.curr_goal = self.goal_state_list[self.curr_goal_idx]
+        # self.goal_state_list = goal_state_list
+        # self.curr_goal_idx = 0
+        # self.curr_goal = self.goal_state_list[self.curr_goal_idx]
 
         #Initialize MPC controller
         self.initialize_mpc_controller()
-        print(self.curr_goal)
 
 
-        self.control_process.update_goal(goal_state=self.curr_goal)
-        self.controller.rollout_fn.update_goal(goal_state=self.curr_goal)
+        # self.control_process.update_goal(goal_state=self.curr_goal)
+        # self.controller.rollout_fn.update_goal(goal_state=self.curr_goal)
+
+        # print(self.controller.rollout_fn.goal_ee_pos, self.controller.rollout_fn.goal_ee_quat)
+        # input('....')
+
         self.robot_command_filter = JointStateFilter(filter_coeff={'position': 1.0, 'velocity': 0.05})
         self.robot_state_filter = JointStateFilter(filter_coeff={'position': 0.5, 'velocity': 0.1}, dt=0.0)
 
-        rospy.loginfo('MPC Controller Initialized')
+        rospy.loginfo('[MPC]: Controller Initialized')
 
         #Initialize ROS
         self.pub = rospy.Publisher(self.command_topic, JointState, queue_size=1, latch=False)
@@ -106,12 +109,18 @@ class MPCController(object):
 
     def goal_callback(self, msg):
         self.curr_ee_goal = msg
+        goal_ee_pos, goal_ee_quat = self.pose_stamped_to_np(msg)
+
+        self.control_process.update_goal(goal_ee_pos = goal_ee_pos,
+                                         goal_ee_quat = goal_ee_quat)
+        self.controller.rollout_fn.update_goal(goal_ee_pos = goal_ee_pos,
+                                               goal_ee_quat = goal_ee_quat)
     
     def control_loop(self):
         
         while not rospy.is_shutdown():
         
-            if self.curr_state_raw is not None:
+            if self.curr_state_raw is not None and self.curr_ee_goal is not None:
                 
                 curr_state_np = np.hstack((self.curr_state_filtered_dict['position'], 
                                            self.curr_state_filtered_dict['velocity'], 
@@ -136,7 +145,7 @@ class MPCController(object):
                     self.curr_mpc_command.effort = np.zeros(7)
                 
                 self.pub.publish(self.curr_mpc_command)
-                rospy.loginfo('Command published')
+                rospy.loginfo('[MPC]: Command published')
                 
                 if self.tstep == 0:
                     self.start_t = time.time()
@@ -156,8 +165,10 @@ class MPCController(object):
                     self.command_qdd_list.append(np.ravel(next_command[0]))
                 
                 self.rate.sleep()
-            else:
-                rospy.loginfo('Waiting for state')
+            elif self.curr_state_raw is None:
+                rospy.loginfo('[MPC]: Waiting for state')
+            elif self.curr_ee_goal is None:
+                rospy.loginfo('[MPC]: Waiting for goal`')
         
         self.close()
     
@@ -225,6 +236,16 @@ class MPCController(object):
         msg.position = dict['position']
         msg.velocity = dict['velocity']
         return msg
+    
+    def pose_stamped_to_np(self, msg):
+        pos = np.array([msg.pose.position.x,
+                        msg.pose.position.y,
+                        msg.pose.position.z])
+        quat = np.array([msg.pose.orientation.x,
+                         msg.pose.orientation.y,
+                         msg.pose.orientation.z,
+                         msg.pose.orientation.w])
+        return pos, quat
 
 if __name__ == '__main__':
     rospy.init_node("mpc_controller", anonymous=True)
@@ -247,5 +268,5 @@ if __name__ == '__main__':
     #               Please make sure to have the user stop button at hand! \n
     #               Press Enter to continue... \n""")
     # input()
-    rospy.loginfo('Initiating MPC Control Loop')
+    rospy.loginfo('[MPC]: Initiating Control Loop')
     mpc_controller.control_loop()
