@@ -5,7 +5,7 @@ from sensor_msgs.msg import JointState
 import std_msgs.msg
 
 
-goal_ee_pos_list = [[-0.3554, -0.7373,  0.1479]]
+goal_ee_pos_list = [[-0.3554, -0.7373,  0.2]] #0.1479
 goal_ee_quat_list = [[ 0.1571,  0.8050, -0.5714,  0.0267]]
 
 class GoalManager(object):
