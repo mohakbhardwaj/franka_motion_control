@@ -3,7 +3,8 @@ import numpy as np
 
 
 class CubicSplineInterPolation():
-    def __init__(self):
+    def __init__(self, ndims):
+        self.ndims = ndims
         self.M = np.array([[1.0, 0.0, 0.0, 0.0],
                             [0.0, 1.0, 0.0, 0.0],
                             [1.0, 1.0, 1.0, 1.0],
@@ -22,15 +23,15 @@ class CubicSplineInterPolation():
     #     print(self.A, Y)
 
     def fit(self, state_1, t1, state_2, t2):
-        y1 = state_1[0]
-        y2 = state_2[0]
-        dy1dt1 = state_1[1]
-        dy2dt2 = state_2[1]
+        y1 = state_1[0, 0:self.ndims]
+        y2 = state_2[0, 0:self.ndims]
+        dy1dt1 = state_1[1, 0:self.ndims]
+        dy2dt2 = state_2[1, 0:self.ndims]
 
         self.t1 = t1
         self.t2 = t2
         delta_t = t2 - t1
-        Y = np.array([y1, dy1dt1*delta_t, y2, dy2dt2*delta_t])
+        Y = np.hstack([y1, dy1dt1*delta_t, y2, dy2dt2*delta_t])
         self.A = self.M_inv @ Y
         print(self.A, Y)
 
@@ -49,17 +50,18 @@ class CubicSplineInterPolation():
 if __name__ == "__main__":
 
     import matplotlib.pyplot as plt
-    spline = CubicSplineInterPolation()
 
     test_case = 1
     if test_case == 0:    
+        spline = CubicSplineInterPolation(ndims=1)
+
         np.random.seed(0)
         t1 = 0.0; y1 = 1.0; t2 = 0.5; y2 = 1.0; dy1dt1 = 0.0; dy2dt2_rand = np.random.randn(10)
 
         for dy2dt2 in dy2dt2_rand:
             
-            state_1 = [y1, dy1dt1]
-            state_2 = [y2, dy2dt2]
+            state_1 = np.array([y1, dy1dt1])
+            state_2 = np.array([y2, dy2dt2])
             
             spline.fit(state_1, t1, state_2, t2)
 
@@ -72,6 +74,8 @@ if __name__ == "__main__":
             plt.plot(ts, commands, label="dy2dt2={}".format(np.round(dy2dt2,3)))
         plt.legend()
     elif test_case == 1:
+        spline = CubicSplineInterPolation(ndims=7)
+
         data = np.load('../data/mpc_data.npz')
         fig, ax = plt.subplots(2,1)
         # for i in range(data['q_cmd'].shape[1]):
