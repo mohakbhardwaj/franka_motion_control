@@ -8,9 +8,9 @@
   <param name="franka_robot_description" textfile="/home/mohak/workspace/stochastic_control/content/assets/urdf/franka_description/franka_panda_no_gripper.urdf" />
 
 
-  <node name="goal_manager" type="goal_manager.py" pkg="franka_motion_control" output="screen">
+  <!-- <node name="goal_manager" type="goal_manager.py" pkg="franka_motion_control" output="screen">
     <param name="goal_pub_freq" value="$(arg goal_pub_freq)" />
-  </node>
+  </node> -->
 
   <node name="mpc" type="mpc.py" pkg="franka_motion_control" output="screen">
     <rosparam command="load" file="$(find franka_motion_control)/config/robot_settings.yaml" />

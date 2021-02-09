@@ -11,7 +11,8 @@ torch.multiprocessing.set_start_method('spawn',force=True)
 
 import yaml
 
-from stochastic_control.mpc_tools.rollout.arm_reacher import ArmReacher
+# from stochastic_control.mpc_tools.rollout.arm_reacher import ArmReacher
+from stochastic_control.mpc_tools.rollout.arm_reacher_nn_collision import ArmReacherCollisionNN
 from stochastic_control.mpc_tools.control import MPPI, StompMPPI
 from stochastic_control.mpc_tools.utils.state_filter import JointStateFilter
 from stochastic_control.mpc_tools.utils.mpc_process_wrapper import ControlProcess
@@ -45,22 +46,22 @@ class MPCController(object):
         # with open(mpc_yml_file) as file:
         #     self.self.exp_params = yaml.load(file, Loader=yaml.FullLoader)
 
-        # self.goal_state_list = goal_state_list
-        # self.curr_goal_idx = 0
-        # self.curr_goal = self.goal_state_list[self.curr_goal_idx]
+        self.goal_state_list = goal_state_list
+        self.curr_goal_idx = 0
+        self.curr_goal = self.goal_state_list[self.curr_goal_idx]
 
         #Initialize MPC controller
         self.initialize_mpc_controller()
 
 
-        # self.control_process.update_goal(goal_state=self.curr_goal)
-        # self.controller.rollout_fn.update_goal(goal_state=self.curr_goal)
+        self.control_process.update_goal(goal_state=self.curr_goal)
+        self.controller.rollout_fn.update_goal(goal_state=self.curr_goal)
 
         # print(self.controller.rollout_fn.goal_ee_pos, self.controller.rollout_fn.goal_ee_quat)
         # input('....')
 
-        self.robot_command_filter = JointStateFilter(filter_coeff={'position': 1.0, 'velocity': 0.05})
-        self.robot_state_filter = JointStateFilter(filter_coeff={'position': 0.5, 'velocity': 0.1}, dt=0.0)
+        self.robot_command_filter = JointStateFilter(filter_coeff={'position': 1.0, 'velocity': 0.5})
+        self.robot_state_filter = JointStateFilter(filter_coeff={'position': 1.0, 'velocity': 0.1}, dt=0.0)
 
         rospy.loginfo('[MPC]: Controller Initialized')
 
@@ -102,25 +103,29 @@ class MPCController(object):
         self.curr_state_raw_dict = self.joint_state_to_dict(self.curr_state_raw)
 
         #filter velocity only
-        self.curr_state_filtered_dict = self.curr_state_raw_dict
-        self.curr_state_filtered_dict['velocity'] = self.robot_state_filter.filter_joint_state({'velocity': self.curr_state_raw_dict['velocity']})['velocity']
+        # self.curr_state_filtered_dict = self.curr_state_raw_dict
+        #TBD: Make this call clearner
+        # self.curr_state_filtered_dict['velocity'] = self.robot_state_filter.filter_joint_state({'velocity': self.curr_state_raw_dict['velocity']})['velocity']
+        
+        self.curr_state_filtered_dict = self.robot_state_filter.filter_joint_state(self.curr_state_raw_dict)
         self.curr_state_filtered = self.dict_to_joint_state(self.curr_state_filtered_dict)
 
 
     def goal_callback(self, msg):
         self.curr_ee_goal = msg
-        goal_ee_pos, goal_ee_quat = self.pose_stamped_to_np(msg)
+        pass
+        # goal_ee_pos, goal_ee_quat = self.pose_stamped_to_np(msg)
 
-        self.control_process.update_goal(goal_ee_pos = goal_ee_pos,
-                                         goal_ee_quat = goal_ee_quat)
-        self.controller.rollout_fn.update_goal(goal_ee_pos = goal_ee_pos,
-                                               goal_ee_quat = goal_ee_quat)
+        # self.control_process.update_goal(goal_ee_pos = goal_ee_pos,
+        #                                  goal_ee_quat = goal_ee_quat)
+        # self.controller.rollout_fn.update_goal(goal_ee_pos = goal_ee_pos,
+        #                                        goal_ee_quat = goal_ee_quat)
     
     def control_loop(self):
         
         while not rospy.is_shutdown():
         
-            if self.curr_state_raw is not None and self.curr_ee_goal is not None:
+            if self.curr_state_raw is not None: # and self.curr_ee_goal is not None:
                 
                 curr_state_np = np.hstack((self.curr_state_filtered_dict['position'], 
                                            self.curr_state_filtered_dict['velocity'], 
@@ -129,7 +134,9 @@ class MPCController(object):
                 #                    'velocity': np.array(self.curr_robot_state.velocity)}
                 curr_state = torch.as_tensor(curr_state_np)      
                 
-                next_command, val, info = self.control_process.get_command(self.tstep, curr_state)
+                next_command, val, info = self.control_process.get_command(self.tstep, curr_state,
+                                                                           self.control_process.mpc_dt)
+                # print(self.control_process.mpc_dt)
 
                 if(self.exp_params['control_space'] == 'acc'):
                     qdd_des = np.ravel(next_command[0])
@@ -164,12 +171,15 @@ class MPCController(object):
                     self.command_q_list.append(self.curr_mpc_command.position)
                     self.command_qdd_list.append(np.ravel(next_command[0]))
                 
-                self.rate.sleep()
+            
             elif self.curr_state_raw is None:
                 rospy.loginfo('[MPC]: Waiting for state')
+            
             elif self.curr_ee_goal is None:
                 rospy.loginfo('[MPC]: Waiting for goal`')
-        
+
+            self.rate.sleep()
+
         self.close()
     
 
@@ -186,7 +196,7 @@ class MPCController(object):
 
         
         mpc_tensor_dtype = {'device':device, 'dtype':float_dtype}
-        rollout_fn = ArmReacher(self.exp_params, device=device, float_dtype=float_dtype, world_params=None)
+        rollout_fn = ArmReacherCollisionNN(self.exp_params, device=device, float_dtype=float_dtype, world_params=None)
 
         mppi_params = self.exp_params['mppi']
 

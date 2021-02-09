@@ -15,6 +15,11 @@ from geometry/tf/CMakeLists.txt comment the following
    add_rostest(test/transform_listener_unittest.launch)
    ```
 
-
+```
+git clone --single-branch --branch melodic-devel https://github.com/ros/geometry
+git clone --single-branch --branch melodic-devel https://github.com/ros/robot_state_publisher.git 
+git clone --single-branch --branch melodic-devel https://github.com/ros/kdl_parser.git
+git clone https://github.com/ros/angles.git
+```
 
 ## Setting up ROS + Networking
