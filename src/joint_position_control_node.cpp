@@ -46,9 +46,7 @@ int main(int argc, char** argv)
         // First move the robot to a home joint configuration
         // std::array<double, 7> q_home ={{0, -M_PI_4, 0, -3 * M_PI_4, 0, M_PI_2, M_PI_4}};
         // controller.setJointPositionGoal(q_home);   
-     
         if(debug){
-            std::cout << "Here" << std::endl;
             // reads robot state but does not execute commands
             robot.read([&](const franka::RobotState& robot_state) {
                 return controller.read_state_callback(robot_state);               

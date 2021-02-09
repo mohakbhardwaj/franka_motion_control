@@ -2,7 +2,7 @@
 
 <launch>
   <arg name="robot_ip" default="172.16.0.2" />
-  <arg name="dq_max" default="0.5" />
+  <arg name="dq_max" default="0.2" />
   <arg name="debug" default="false" />
 
   <node name="joint_pos_controller" type="joint_position_control_node" pkg="franka_motion_control" output="screen">

@@ -86,8 +86,8 @@ bool JointPositionController::publishRobotState(const franka::RobotState& robot_
     curr_robot_state_.header.stamp = ros::Time::now();
     for (size_t i = 0; i < curr_robot_state_.position.size(); i++) {
         curr_robot_state_.position[i] = robot_state.q_d[i]; //robot_state.q_d[i];
-        curr_robot_state_.velocity[i] = robot_state.dq[i];
-        curr_robot_state_.effort[i] = robot_state.dq_d[i];
+        curr_robot_state_.velocity[i] = robot_state.dq_d[i];
+        curr_robot_state_.effort[i] = robot_state.dq[i];
     }
     state_publisher_.publish(curr_robot_state_);
     return true;
@@ -117,17 +117,26 @@ franka::JointPositions JointPositionController::motion_generator_callback(const 
     curr_q_ = Vector7d(robot_state.q_d.data());
 
     if(goal_pub_started_){
-        delta_q_ = (curr_q_goal_ - curr_q_)/ dt;
+        delta_q_ = (curr_q_goal_ - curr_q_); /// dt;
 
         double max_delta_q = delta_q_.lpNorm<Eigen::Infinity>();
+        double dq_max_dt = dq_max_ * dt;
         // std::cout << delta_q_[0] << " " << max_delta_q <<  std::endl;
 
         //Normalize delta_q to respect limits
-        if(max_delta_q > dq_max_){
+
+        if(max_delta_q > dq_max_dt){
             for(size_t i = 0; i < 7; i++){
-                delta_q_[i] = (delta_q_[i] / max_delta_q) * dq_max_;
+                delta_q_[i] = (delta_q_[i] / max_delta_q) * dq_max_dt;
             }
         }
+
+        // for(size_t i = 0; i < 7; i++){
+        //     if(std::abs(delta_q_[i]) > dq_max_){
+        //         delta_q_[i] = dq_max_;
+        //     }
+        // }
+
 
         // Check if goal is reached
         std::cout << delta_q_[0] << std::endl;
@@ -144,7 +153,7 @@ franka::JointPositions JointPositionController::motion_generator_callback(const 
     }
 
     // calculate desired joint position
-    Vector7d q_desired = curr_q_ + (delta_q_ * dt);
+    Vector7d q_desired = curr_q_ + delta_q_; //(delta_q_ * dt);
 
     std::array<double, 7> joint_positions;
     Eigen::VectorXd::Map(&joint_positions[0], 7) = q_desired;
@@ -195,7 +204,9 @@ void JointPositionController::setDefaultBehavior(franka::Robot& robot) {
         {{20.0, 20.0, 20.0, 25.0, 25.0, 25.0}}, {{20.0, 20.0, 20.0, 25.0, 25.0, 25.0}});
 
 //   robot.setJointImpedance({{3000, 3000, 3000, 2500, 2500, 2000, 2000}});
-  robot.setJointImpedance({{300, 300, 300, 250, 250, 200, 200}});
+//   robot.setJointImpedance({{300, 300, 300, 250, 250, 200, 200}});
+  robot.setJointImpedance({{30, 30, 30, 25, 25, 20, 20}});
+
 //   robot.setCartesianImpedance({{3000, 3000, 3000, 300, 300, 300}});
 }
 
