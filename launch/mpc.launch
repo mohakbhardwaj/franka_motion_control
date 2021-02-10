@@ -2,7 +2,7 @@
 
 <launch>
   <arg name="mpc_yml_file" default="$(find franka_motion_control)/config/franka_reacher.yml" />
-  <arg name="control_freq" default="100" />
+  <arg name="control_freq" default="1000" />
   <arg name="goal_pub_freq" default="10" />
   <arg name="debug" default="False" />
   <param name="franka_robot_description" textfile="/home/mohak/workspace/stochastic_control/content/assets/urdf/franka_description/franka_panda_no_gripper.urdf" />

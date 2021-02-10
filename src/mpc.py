@@ -17,7 +17,7 @@ from stochastic_control.mpc_tools.control import MPPI, StompMPPI
 from stochastic_control.mpc_tools.utils.state_filter import JointStateFilter
 from stochastic_control.mpc_tools.utils.mpc_process_wrapper import ControlProcess
 from stochastic_control.utils.util_file import get_configs_path, get_gym_configs_path, join_path, load_yaml, get_assets_path
-
+from cubic_spline import CubicSplineInterPolation
 
 from differentiable_robot_model.coordinate_transform import quaternion_to_matrix, CoordinateTransform
 np.set_printoptions(precision=2)
@@ -53,16 +53,14 @@ class MPCController(object):
         #Initialize MPC controller
         self.initialize_mpc_controller()
 
-
         self.control_process.update_goal(goal_state=self.curr_goal)
         self.controller.rollout_fn.update_goal(goal_state=self.curr_goal)
 
-        # print(self.controller.rollout_fn.goal_ee_pos, self.controller.rollout_fn.goal_ee_quat)
-        # input('....')
-
-        self.robot_command_filter = JointStateFilter(filter_coeff={'position': 1.0, 'velocity': 0.5})
+        self.robot_command_filter = JointStateFilter(filter_coeff={'position': 1.0, 'velocity': 0.2})
+        #dt=self.exp_params['control_dt']
+                                                     
         self.robot_state_filter = JointStateFilter(filter_coeff={'position': 1.0, 'velocity': 0.1}, dt=0.0)
-
+        self.spline = CubicSplineInterPolation()
         rospy.loginfo('[MPC]: Controller Initialized')
 
         #Initialize ROS
@@ -92,6 +90,8 @@ class MPCController(object):
             self.robot_qd_des_list_f = []
             self.command_q_list = []
             self.command_qdd_list = []
+            self.ee_dist_err_list = []
+            self.ee_rot_err_list = []
 
     def state_callback(self, msg):
         self.curr_state_raw = msg
@@ -130,27 +130,50 @@ class MPCController(object):
                 curr_state_np = np.hstack((self.curr_state_filtered_dict['position'], 
                                            self.curr_state_filtered_dict['velocity'], 
                                            self.prev_acc))
-                # curr_state_dict = {'position': np.array(self.curr_robot_state.position),
-                #                    'velocity': np.array(self.curr_robot_state.velocity)}
-                curr_state = torch.as_tensor(curr_state_np)      
-                
-                next_command, val, info = self.control_process.get_command(self.tstep, curr_state,
-                                                                           self.control_process.mpc_dt)
-                # print(self.control_process.mpc_dt)
+                # curr_state_np = np.concatenate((self.curr_state_filtered_dict['position'], 
+                #                                 self.curr_state_filtered_dict['velocity'], 
+                #                                 self.prev_acc), axis=1)
+                # print(curr_state_np.shape)
+                curr_state_tensor = torch.as_tensor(curr_state_np)
+                next_command, command_dt, val, info = self.control_process.get_command(self.tstep, curr_state_tensor,
+                                                                            debug=False,
+                                                                            control_dt=self.control_process.mpc_dt)
+                if not self.spline.command_available(self.tstep):
 
-                if(self.exp_params['control_space'] == 'acc'):
+                                                                            
+                    # if(self.exp_params['control_space'] == 'acc'):
                     qdd_des = np.ravel(next_command[0])
-                    cmd_des = self.robot_command_filter.integrate_acc(qdd_des, self.curr_state_filtered_dict)
-                    self.curr_mpc_command.position = cmd_des['position']
-                    self.curr_mpc_command.velocity = cmd_des['velocity']
-                    self.curr_mpc_command.effort = np.zeros(7) #What is the third key here??
+                    curr_command_dt = command_dt[0].item()
+                    # print('Curr command dt', curr_command_dt, self.tstep)
+                    mpc_cmd_des = self.robot_command_filter.integrate_acc(qdd_des, 
+                                            self.curr_state_filtered_dict,
+                                            dt = 10*(curr_command_dt - self.tstep))
+                    # self.curr_mpc_command.position = cmd_des['position']
+                    # self.curr_mpc_command.velocity = cmd_des['velocity']
+                    # self.curr_mpc_command.effort = np.zeros(7) #What is the third key here??
                     self.prev_acc = qdd_des
-                
-                elif(self.exp_params['control_space'] == 'pos'):
-                    self.curr_mpc_command.position = np.ravel(next_command[0])
-                    self.curr_mpc_command.velocity = np.zeros(7)
-                    self.curr_mpc_command.effort = np.zeros(7)
-                
+                    
+                    # elif(self.exp_params['control_space'] == 'pos'):
+                    #     self.curr_mpc_command.position = np.ravel(next_command[0])
+                    #     self.curr_mpc_command.velocity = np.zeros(7)
+                    #     self.curr_mpc_command.effort = np.zeros(7)
+                    
+                    mpc_des_state_np = np.concatenate(([mpc_cmd_des['position']],
+                                                       [mpc_cmd_des['velocity']]),
+                                                       axis=0)
+                    print(mpc_cmd_des['velocity'][3])
+                    curr_state_np_spline = curr_state_np[0:14].reshape(2,7)           
+                    #fit spline
+                    self.spline.fit(curr_state_np_spline, self.tstep, mpc_des_state_np, curr_command_dt)      
+
+
+
+                spline_cmd_des = self.spline.get_command(self.tstep)
+                # print(spline_cmd_des)
+                self.curr_mpc_command.position = spline_cmd_des[0]
+                self.curr_mpc_command.velocity = np.zeros(7) #spline_cmd_des[1] #return spline derivative as well   
+                self.curr_mpc_command.effort = np.zeros(7) #What is the third key here??
+
                 self.pub.publish(self.curr_mpc_command)
                 rospy.loginfo('[MPC]: Command published')
                 
@@ -158,20 +181,14 @@ class MPCController(object):
                     self.start_t = time.time()
 
                 self.tstep = time.time() - self.start_t #TODO: Check this versus ros::Time now and state timestamp
-
-                if self.debug:
-                    self.robot_q_list_r.append(self.curr_state_raw.position)
-                    self.robot_qd_list_r.append(self.curr_state_raw.velocity)
-                    self.robot_qd_des_list_r.append(self.curr_state_raw.effort)
-                    
-                    self.robot_q_list_f.append(self.curr_state_filtered.position)
-                    self.robot_qd_list_f.append(self.curr_state_filtered.velocity)
-                    self.robot_qd_des_list_f.append(self.curr_state_filtered.effort)
-                    
-                    self.command_q_list.append(self.curr_mpc_command.position)
-                    self.command_qdd_list.append(np.ravel(next_command[0]))
                 
-            
+                # ee_error,_ = self.controller.rollout_fn.current_cost(curr_state_tensor.unsqueeze(0))
+                # ee_error = [x.detach().cpu().item() for x in ee_error]
+                # rospy.loginfo(["{:.3f}".format(x) for x in ee_error]) #, "{:.3f}".format(mpc_control.mpc_dt)
+                
+                if self.debug:
+                    self.log_data(qdd_des, [0., 0., 0.])
+
             elif self.curr_state_raw is None:
                 rospy.loginfo('[MPC]: Waiting for state')
             
@@ -223,6 +240,21 @@ class MPCController(object):
         self.control_process = ControlProcess(self.controller)
         self.controller.rollout_fn.dynamics_model.robot_model.load_lxml_objects()
     
+    def log_data(self, qdd_des, ee_error):
+        self.robot_q_list_r.append(self.curr_state_raw.position)
+        self.robot_qd_list_r.append(self.curr_state_raw.velocity)
+        self.robot_qd_des_list_r.append(self.curr_state_raw.effort)
+        
+        self.robot_q_list_f.append(self.curr_state_filtered.position)
+        self.robot_qd_list_f.append(self.curr_state_filtered.velocity)
+        self.robot_qd_des_list_f.append(self.curr_state_filtered.effort)
+        
+        self.command_q_list.append(self.curr_mpc_command.position)
+        self.command_qdd_list.append(qdd_des)
+
+        self.ee_dist_err_list.append(ee_error[0])
+        self.ee_rot_err_list.append(ee_error[1])
+
     def close(self):
         print('Closing MPC Controller')
         if self.debug:
@@ -234,7 +266,9 @@ class MPCController(object):
                     qd_robot_f = self.robot_qd_list_f,
                     qd_des_robot_f = self.robot_qd_des_list_f,
                     q_cmd = self.command_q_list,
-                    qdd_cmd = self.command_qdd_list)
+                    qdd_cmd = self.command_qdd_list,
+                    ee_dist_err = self.ee_dist_err_list,
+                    ee_rot_err = self.ee_rot_err_list)
             print('Logs dumped')
 
     def joint_state_to_dict(self, msg):
