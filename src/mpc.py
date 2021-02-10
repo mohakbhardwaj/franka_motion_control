@@ -158,13 +158,16 @@ class MPCController(object):
                     #     self.curr_mpc_command.velocity = np.zeros(7)
                     #     self.curr_mpc_command.effort = np.zeros(7)
                     
-                    mpc_des_state_np = np.concatenate(([mpc_cmd_des['position']],
-                                                       [mpc_cmd_des['velocity']]),
-                                                       axis=0)
-                    print(mpc_cmd_des['velocity'][3])
-                    curr_state_np_spline = curr_state_np[0:14].reshape(2,7)           
+                    # mpc_des_state_np = np.concatenate(([mpc_cmd_des['position']],
+                    #                                    [mpc_cmd_des['velocity']]),
+                    #                                    axis=0)
+                    mpc_des_state_torch = torch.cat((torch.tensor([mpc_cmd_des['position']]),
+                                                     torch.tensor([mpc_cmd_des['velocity']])),
+                                                     dim=0)
+                    # curr_state_spline = torch.as_tensor(curr_state_np[0:14].reshape(2,7))      
+                    curr_state_spline = curr_state_tensor[0:14].reshape(2,7)
                     #fit spline
-                    self.spline.fit(curr_state_np_spline, self.tstep, mpc_des_state_np, curr_command_dt)      
+                    self.spline.fit(curr_state_spline, self.tstep, mpc_des_state_torch, curr_command_dt)      
 
 
 

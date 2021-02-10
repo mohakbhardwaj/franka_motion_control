@@ -83,7 +83,7 @@ if __name__ == "__main__":
     import time
     spline = CubicSplineInterPolation()
 
-    test_case = 1
+    test_case = 0
     if test_case == 0:    
         #Test 1D spline generation
         # np.random.seed(0)
