@@ -118,7 +118,7 @@ cost:
   retract_weight: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0,0.0]
 
 mppi:
-  horizon           : 20
+  horizon           : 50
   init_cov          : 0.01 #.5
   gamma             : 0.98
   n_iters           : 1
@@ -126,13 +126,13 @@ mppi:
   step_size_cov     : 0.6
   beta              : 0.1 #1.0
   alpha             : 1
-  num_particles     : 300 #10000
+  num_particles     : 500 #10000
   update_cov        : False
   cov_type          : 'diag_AxA' # 
   kappa             : 0.001
   null_act_frac     : 0.05 #0.1
   sample_mode       : 'mean'
-  base_action       : 'repeat'
+  base_action       : 'null'
   squash_fn         : 'clamp'
   hotstart          : True
   visual_traj       : 'ee_pos_seq'
