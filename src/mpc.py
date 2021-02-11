@@ -133,31 +133,32 @@ class MPCController(object):
                 
                 curr_state_np = np.hstack((self.curr_state_filtered_dict['position'], 
                                            self.curr_state_filtered_dict['velocity'], 
-                                           self.prev_acc))
+                                           self.prev_mpc_qdd_des))
                 # curr_state_np = np.concatenate((self.curr_state_filtered_dict['position'], 
                 #                                 self.curr_state_filtered_dict['velocity'], 
                 #                                 self.prev_acc), axis=0)
 
                 curr_state_tensor = torch.as_tensor(curr_state_np)
-                next_command, command_dt, val, info = self.control_process.get_command(self.tstep, curr_state_tensor,
-                                                                                        debug=False,
-                                                                                        control_dt=self.control_process.mpc_dt)
-                
-                # print(self.control_process.mpc_dt)
-                
-                #calculate new spline command if unavailable
-                if not self.spline.command_available(self.tstep):                                                                            
+                mpc_next_command, command_dt, val, info = self.control_process.get_command(self.tstep, curr_state_tensor,
+                                                                                           debug=False,
+                                                                                           control_dt=self.control_process.mpc_dt)
+                mpc_qdd_des = np.ravel(mpc_next_command[0]) 
+                mpc_comd_dt = command_dt[0].item()
+
+                #calculate new spline command if unavailable or mpc command updated
+                if (not self.spline.command_available(self.tstep)) or \
+                   (not (mpc_qdd_des == self.prev_mpc_qdd_des).all() ):                                                                            
                     # if(self.exp_params['control_space'] == 'acc'):
-                    qdd_des = np.ravel(next_command[0])
-                    curr_command_dt = command_dt[0].item()
+                    # qdd_des = np.ravel(next_command[0])
+                    # curr_command_dt = command_dt[0].item()
                     # print('Curr command dt', curr_command_dt, self.tstep)
-                    mpc_cmd_des = self.robot_command_filter.integrate_acc(qdd_des, 
+                    #TODO: Remove the joint filter and only use MPC command.
+                    mpc_cmd_des = self.robot_command_filter.integrate_acc(mpc_qdd_des, 
                                             self.curr_state_filtered_dict,
-                                            dt = 10*(curr_command_dt - self.tstep))
+                                            dt = 10*(mpc_cmd_dt - self.tstep))
                     # self.curr_mpc_command.position = cmd_des['position']
                     # self.curr_mpc_command.velocity = cmd_des['velocity']
                     # self.curr_mpc_command.effort = np.zeros(7) #What is the third key here??
-                    self.prev_acc = qdd_des
                     
                     # elif(self.exp_params['control_space'] == 'pos'):
                     #     self.curr_mpc_command.position = np.ravel(next_command[0])
@@ -173,6 +174,7 @@ class MPCController(object):
                     # curr_state_spline = torch.as_tensor(curr_state_np[0:14].reshape(2,7))      
                     curr_state_spline = curr_state_tensor[0:14].reshape(2,7)
                     #fit spline
+                    #TBD: Question: Should fitting be donee from curr state of robot or current spline state?
                     self.spline.fit(curr_state_spline, self.tstep, mpc_des_state_torch, curr_command_dt)      
 
 
@@ -191,6 +193,8 @@ class MPCController(object):
 
                 # self.tstep = time.time() - self.start_t 
                 self.tstep = rospy.get_time() - self.start_t
+                self.prev_mpc_qdd_des = mpc_qdd_des
+
 
                 # print(self.tstep, time.time(), rospy.get_time(), rospy.get_time()-self.start_t_ros)
                 # ee_error,_ = self.controller.rollout_fn.current_cost(curr_state_tensor.unsqueeze(0))
