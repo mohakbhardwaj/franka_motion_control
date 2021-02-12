@@ -25,7 +25,7 @@ model:
     learnable_links: []
   name: "franka_panda"
   dt: 0.01
-  max_acc: 0.1 #10.0
+  max_acc: 0.5 #10.0
 
   dt_traj_params:
     base_dt: 0.01
@@ -120,7 +120,7 @@ cost:
 mppi:
   horizon           : 50
   init_cov          : 0.01 #.5
-  gamma             : 0.98
+  gamma             : 0.99
   n_iters           : 1
   step_size_mean    : 0.9 #0.05 #0.05
   step_size_cov     : 0.6
@@ -130,7 +130,7 @@ mppi:
   update_cov        : False
   cov_type          : 'diag_AxA' # 
   kappa             : 0.001
-  null_act_frac     : 0.05 #0.1
+  null_act_frac     : 0.01 #0.1
   sample_mode       : 'mean'
   base_action       : 'null'
   squash_fn         : 'clamp'
@@ -139,7 +139,7 @@ mppi:
   sample_params:
     type: 'halton_stomp'
     fixed_samples: True
-    sample_ratio: 0.0
+    sample_ratio: 0.4
     seed: 0
-    filter_coeffs: [0.3, 0.5, 0.2]
+    filter_coeffs: [0.25, 0.8, 0.0]
 

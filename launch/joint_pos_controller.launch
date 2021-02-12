@@ -7,12 +7,13 @@
   <param name="robot_description" textfile="/home/mohak/workspace/stochastic_control/content/assets/urdf/franka_description/franka_panda_no_gripper.urdf" />
 
   <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" />
-<!-- 
+
   <node name="joint_pos_controller" type="joint_position_control_node" pkg="franka_motion_control" output="screen">
     <param name="robot_ip" value="$(arg robot_ip)" type="str" />
     <param name="dq_max" value="$(arg dq_max)" type="double" />
     <param name="debug" value="$(arg debug)" type="bool" />
     <rosparam command="load" file="$(find franka_motion_control)/config/robot_settings.yaml" />
-  </node> -->
+  </node>
+
 
 </launch>

@@ -56,8 +56,10 @@ class MPCController(object):
         self.controller.rollout_fn.update_goal(goal_state=self.curr_goal)
 
         #Create filters for state and command
-        self.robot_command_filter = JointStateFilter(filter_coeff={'position': 1.0, 'velocity': 0.2})                                                     
+        self.robot_command_filter = JointStateFilter(filter_coeff={'position': 0.4, 'velocity': 0.4})                                                     
+        # self.robot_state_filter = JointStateFilter(filter_coeff={'position': 1.0, 'velocity': 0.1}, dt=0.0)
         self.robot_state_filter = JointStateFilter(filter_coeff={'position': 1.0, 'velocity': 0.1}, dt=0.0)
+
         self.spline = CubicSplineInterPolation()
         rospy.loginfo('[MPC]: Controller Initialized')
 
@@ -77,7 +79,7 @@ class MPCController(object):
         self.curr_mpc_command = JointState()
         self.stop_controller = False
         self.zero_acc = np.zeros(7)
-        self.prev_acc = np.zeros(7)
+        self.prev_mpc_qdd_des = np.zeros(7)
         self.tstep = 0
         self.debug = debug
         if self.debug:
@@ -136,46 +138,39 @@ class MPCController(object):
                                            self.prev_mpc_qdd_des))
                 # curr_state_np = np.concatenate((self.curr_state_filtered_dict['position'], 
                 #                                 self.curr_state_filtered_dict['velocity'], 
-                #                                 self.prev_acc), axis=0)
+                #                                 self.prev_mpc_qdd_des), axis=0)
 
                 curr_state_tensor = torch.as_tensor(curr_state_np)
                 mpc_next_command, command_dt, val, info = self.control_process.get_command(self.tstep, curr_state_tensor,
                                                                                            debug=False,
                                                                                            control_dt=self.control_process.mpc_dt)
                 mpc_qdd_des = np.ravel(mpc_next_command[0]) 
-                mpc_comd_dt = command_dt[0].item()
+                mpc_cmd_dt = command_dt[0].item()
 
+                mpc_cmd_des = self.robot_command_filter.integrate_acc(mpc_qdd_des, 
+                                        self.curr_state_filtered_dict,
+                                        dt = mpc_cmd_dt - self.tstep)
+
+
+                
                 #calculate new spline command if unavailable or mpc command updated
                 if (not self.spline.command_available(self.tstep)) or \
-                   (not (mpc_qdd_des == self.prev_mpc_qdd_des).all() ):                                                                            
+                   (not (mpc_qdd_des == self.prev_mpc_qdd_des).all()): 
+                    # print('Fitting spline', mpc_qdd_des, self.prev_mpc_qdd_des, self.tstep, mpc_cmd_dt, self.control_process.mpc_dt, self.spline.command_available(self.tstep))                                                                           
                     # if(self.exp_params['control_space'] == 'acc'):
                     # qdd_des = np.ravel(next_command[0])
                     # curr_command_dt = command_dt[0].item()
                     # print('Curr command dt', curr_command_dt, self.tstep)
                     #TODO: Remove the joint filter and only use MPC command.
-                    mpc_cmd_des = self.robot_command_filter.integrate_acc(mpc_qdd_des, 
-                                            self.curr_state_filtered_dict,
-                                            dt = 10*(mpc_cmd_dt - self.tstep))
-                    # self.curr_mpc_command.position = cmd_des['position']
-                    # self.curr_mpc_command.velocity = cmd_des['velocity']
-                    # self.curr_mpc_command.effort = np.zeros(7) #What is the third key here??
-                    
-                    # elif(self.exp_params['control_space'] == 'pos'):
-                    #     self.curr_mpc_command.position = np.ravel(next_command[0])
-                    #     self.curr_mpc_command.velocity = np.zeros(7)
-                    #     self.curr_mpc_command.effort = np.zeros(7)
-                    
-                    # mpc_des_state_np = np.concatenate(([mpc_cmd_des['position']],
-                    #                                    [mpc_cmd_des['velocity']]),
-                    #                                    axis=0)
+
                     mpc_des_state_torch = torch.cat((torch.tensor([mpc_cmd_des['position']]),
-                                                     torch.tensor([mpc_cmd_des['velocity']])),
-                                                     dim=0)
+                                                    torch.tensor([mpc_cmd_des['velocity']])),
+                                                    dim=0)
                     # curr_state_spline = torch.as_tensor(curr_state_np[0:14].reshape(2,7))      
                     curr_state_spline = curr_state_tensor[0:14].reshape(2,7)
                     #fit spline
                     #TBD: Question: Should fitting be donee from curr state of robot or current spline state?
-                    self.spline.fit(curr_state_spline, self.tstep, mpc_des_state_torch, curr_command_dt)      
+                    self.spline.fit(curr_state_spline, self.tstep, mpc_des_state_torch, mpc_cmd_dt)      
 
 
 
@@ -202,7 +197,7 @@ class MPCController(object):
                 # rospy.loginfo(["{:.3f}".format(x) for x in ee_error]) #, "{:.3f}".format(mpc_control.mpc_dt)
                 
                 if self.debug:
-                    self.log_data(qdd_des, [0., 0., 0.])
+                    self.log_data(mpc_qdd_des, [0., 0., 0.])
 
             elif self.curr_state_raw is None:
                 rospy.loginfo('[MPC]: Waiting for state')
@@ -223,10 +218,10 @@ class MPCController(object):
                 
                 curr_state_np = np.hstack((self.curr_state_filtered_dict['position'], 
                                            self.curr_state_filtered_dict['velocity'], 
-                                           self.prev_acc))
+                                           self.prev_mpc_qdd_des))
                 # curr_state_np = np.concatenate((self.curr_state_filtered_dict['position'], 
                 #                                 self.curr_state_filtered_dict['velocity'], 
-                #                                 self.prev_acc), axis=1)
+                #                                 self.prev_mpc_qdd_des), axis=1)
                 curr_state_tensor = torch.as_tensor(curr_state_np)
                 next_command, command_dt, val, info = self.control_process.get_command(self.tstep, curr_state_tensor,
                                                                             debug=False,
@@ -242,7 +237,7 @@ class MPCController(object):
                     self.curr_mpc_command.position = mpc_cmd_des['position']
                     self.curr_mpc_command.velocity = mpc_cmd_des['velocity']
                     self.curr_mpc_command.effort = np.zeros(7) #What is the third key here??
-                    self.prev_acc = qdd_des
+                    self.prev_mpc_qdd_des = qdd_des
                     
                 elif(self.exp_params['control_space'] == 'pos'):
                     self.curr_mpc_command.position = np.ravel(next_command[0])
