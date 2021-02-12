@@ -29,6 +29,8 @@ public:
     void setDefaultBehavior(franka::Robot& robot);
     // franka::JointPositions operator()(const franka::RobotState& robot_state, franka::Duration period);
     franka::JointPositions motion_generator_callback(const franka::RobotState& robot_state, franka::Duration period);
+    franka::JointPositions motion_generator_callback_integrator(const franka::RobotState& robot_state, franka::Duration period);
+
     bool read_state_callback(const franka::RobotState& robot_state);
     void setJointPositionGoal(std::array<double, 7>& q_goal);
 

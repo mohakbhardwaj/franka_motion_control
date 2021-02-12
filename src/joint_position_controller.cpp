@@ -106,6 +106,59 @@ bool JointPositionController::publishJointPosCommand(const franka::JointPosition
 
 franka::JointPositions JointPositionController::motion_generator_callback(const franka::RobotState& robot_state,
                                                                           franka::Duration period) {
+    time_ += period.toSec();
+    // std::array<bool, 7> joint_motion_finished{};
+    bool motion_finished;
+
+    publishRobotState(robot_state);
+
+    curr_q_ = Vector7d(robot_state.q_d.data());
+
+    Vector7d q_desired;
+    q_desired = curr_q_;
+
+    if(goal_pub_started_){
+        q_desired =  curr_q_goal_; 
+    }
+    else{
+        q_desired = curr_q_;
+        ROS_INFO("Waiting for goal...");
+    }
+    // std::cout << q_desired << std::endl;
+    std::array<double, 7> joint_positions;
+    Eigen::VectorXd::Map(&joint_positions[0], 7) = q_desired;
+    franka::JointPositions output(joint_positions);
+
+    if(!ros::ok()){
+        ROS_INFO("Ros shutdown");
+        motion_finished = true;
+    }
+    else{
+        motion_finished = false; //std::all_of(joint_motion_finished.cbegin(), joint_motion_finished.cend(),
+                                    //     [](bool x) { return x; });
+    }    
+
+    output.motion_finished = motion_finished;
+    publishJointPosCommand(output);
+    ros::spinOnce();
+    return output;
+
+  }
+
+
+
+
+
+
+
+
+
+
+
+
+
+franka::JointPositions JointPositionController::motion_generator_callback_integrator(const franka::RobotState& robot_state,
+                                                                          franka::Duration period) {
     // int dt = period.toSec();
     double dt = 0.001;
     time_ += period.toSec();
@@ -181,7 +234,7 @@ franka::JointPositions JointPositionController::motion_generator_callback(const 
 bool JointPositionController::read_state_callback(const franka::RobotState& robot_state){
     franka::Duration period(0);
     motion_generator_callback(robot_state, period);
-    ros::spinOnce();
+    // ros::spinOnce();
     return ros::ok();
 
 }
@@ -204,8 +257,8 @@ void JointPositionController::setDefaultBehavior(franka::Robot& robot) {
         {{20.0, 20.0, 20.0, 25.0, 25.0, 25.0}}, {{20.0, 20.0, 20.0, 25.0, 25.0, 25.0}});
 
 //   robot.setJointImpedance({{3000, 3000, 3000, 2500, 2500, 2000, 2000}});
-//   robot.setJointImpedance({{300, 300, 300, 250, 250, 200, 200}});
-  robot.setJointImpedance({{30, 30, 30, 25, 25, 20, 20}});
+  robot.setJointImpedance({{300, 300, 300, 250, 250, 200, 200}});
+//   robot.setJointImpedance({{30, 30, 30, 25, 25, 20, 20}});
 
 //   robot.setCartesianImpedance({{3000, 3000, 3000, 300, 300, 300}});
 }

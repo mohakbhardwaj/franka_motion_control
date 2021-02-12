@@ -62,7 +62,7 @@ int main(int argc, char** argv)
             
             robot.control([&](const franka::RobotState& robot_state, franka::Duration period) 
                                        -> franka::JointPositions {
-                return controller.motion_generator_callback(robot_state, period);
+                return controller.motion_generator_callback_integrator(robot_state, period);
             }
         );
         }
