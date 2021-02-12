@@ -21,8 +21,8 @@ int main(int argc, char** argv)
 
     ros::NodeHandle nh("~");
 
-    std::vector<std::string> joint_names;
-    nh.getParam("joint_names", joint_names);
+    // std::vector<std::string> joint_names;
+    // nh.getParam("joint_names", joint_names);
 
     std::string robot_ip; // ="172.16.0.2";
     nh.getParam("robot_ip", robot_ip);

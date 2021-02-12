@@ -27,6 +27,9 @@ JointPositionController::JointPositionController(ros::NodeHandle* nodehandle, do
     goal_pub_started_ = false;
 
 
+    nh_.getParam("joint_names", joint_names_);
+
+
     curr_goal_state_.effort.resize(7);
     curr_goal_state_.name.resize(7);
     curr_goal_state_.position.resize(7);
@@ -41,6 +44,10 @@ JointPositionController::JointPositionController(ros::NodeHandle* nodehandle, do
     curr_joint_command_.name.resize(7);
     curr_joint_command_.position.resize(7);
     curr_joint_command_.velocity.resize(7);
+
+    curr_goal_state_.name = joint_names_;
+    curr_robot_state_.name = joint_names_;
+    curr_joint_command_.name = joint_names_;
 
 
     // can also do tests/waits to make sure all required services, topics, etc are alive

@@ -16,6 +16,7 @@
 #include <ros/ros.h>
 #include <sensor_msgs/JointState.h>
 
+
 // #include <std_msgs/Bool.h> 
 // #include <std_msgs/Float32.h>
 
@@ -44,6 +45,7 @@ private:
     ros::Publisher  state_publisher_;
     ros::Publisher  command_publisher_;
 
+    std::vector<std::string> joint_names_;
     sensor_msgs::JointState curr_robot_state_;
     sensor_msgs::JointState curr_goal_state_;
     sensor_msgs::JointState curr_joint_command_;
