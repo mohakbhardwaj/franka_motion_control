@@ -1,0 +1,4 @@
+<launch>
+    <node type="rviz" name="rviz" pkg="rviz"/>
+</launch>
+<!-- args="-d $(find package_name)/rviz/config_file.rviz"  -->

@@ -23,3 +23,18 @@ git clone https://github.com/ros/angles.git
 ```
 
 ## Setting up ROS + Networking
+
+
+
+
+## Launching Perception System
+
+### Realsense Installation
+Deactivate the conda environment before you run the following steps
+
+
+[1] Make sure Intel RealSense is connected to the USB 3.0 port on Robosalmon aka perception-pc
+
+[2] ``sudo apt-get install         ros-melodic-realsense2-camera``
+
+[3] ``roslaunch realsense2_camera rs_camera.launch``

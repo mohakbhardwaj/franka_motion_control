@@ -37,7 +37,7 @@ x_des_list = [franka_bl_state, franka_br_state]#, drop_state, home_state]
 
 
 class MPCController(object):
-    def __init__(self, robot_state_topic, command_topic, goal_topic, mpc_yml_file, goal_state_list, control_freq, debug=False):
+    def __init__(self, robot_state_topic, command_topic, goal_topic, mpc_yml_file, goal_state_list, control_freq, debug=False, joint_names=[]):
         #user_command_topic
         self.robot_state_topic = robot_state_topic
         self.command_topic = command_topic
@@ -45,6 +45,8 @@ class MPCController(object):
         # self.user_command_topic = user_command_topic
         self.mpc_yml_file = mpc_yml_file
         self.control_freq = control_freq
+        self.debug = debug
+        self.joint_names = joint_names
 
         self.goal_state_list = goal_state_list
         self.curr_goal_idx = 0
@@ -77,11 +79,11 @@ class MPCController(object):
         self.curr_state_filtered_dict = {}
         self.curr_ee_goal = None
         self.curr_mpc_command = JointState()
+        self.curr_mpc_command.name = self.joint_names
         self.stop_controller = False
         self.zero_acc = np.zeros(7)
         self.prev_mpc_qdd_des = np.zeros(7)
         self.tstep = 0
-        self.debug = debug
         if self.debug:
             self.robot_q_list_r = []
             self.robot_qd_list_r = []
@@ -110,7 +112,6 @@ class MPCController(object):
 
         #filter velocity only
         # self.curr_state_filtered_dict = self.curr_state_raw_dict
-        #TBD: Make this call clearner
         # self.curr_state_filtered_dict['velocity'] = self.robot_state_filter.filter_joint_state({'velocity': self.curr_state_raw_dict['velocity']})['velocity']
         
         self.curr_state_filtered_dict = self.robot_state_filter.filter_joint_state(self.curr_state_raw_dict)
@@ -374,6 +375,7 @@ if __name__ == '__main__':
     mpc_yml_file = os.path.abspath(rospy.get_param('~mpc_yml_file'))
     control_freq = rospy.get_param('~control_freq')
     debug = rospy.get_param('~debug')
+    joint_names = rospy.get_param('~joint_names')
 
     mpc_controller = MPCController("joint_pos_controller/joint_states",
                                    "joint_pos_controller/joint_pos_goal",
@@ -381,7 +383,9 @@ if __name__ == '__main__':
                                    mpc_yml_file,
                                    x_des_list,
                                    control_freq,
-                                   debug)
+                                   debug,
+                                   joint_names)
+
     # while not rospy.is_shutdown():
     #     rospy.spin()
     # rospy.loginfo("""WARNING: This example will move the robot! \n
