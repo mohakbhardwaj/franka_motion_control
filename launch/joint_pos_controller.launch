@@ -5,6 +5,7 @@
   <arg name="dq_max" default="0.05" />
   <arg name="debug" default="false" />
   <param name="robot_description" textfile="/home/mohak/workspace/stochastic_control/content/assets/urdf/franka_description/franka_panda_no_gripper.urdf" />
+  <!-- <param name="robot_description" command="$(find xacro)/xacro $(find franka_panda_description)/robots/panda_arm.urdf.xacro" /> -->
 
 
   <node name="joint_pos_controller" type="joint_position_control_node" pkg="franka_motion_control" output="screen">
