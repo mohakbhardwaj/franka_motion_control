@@ -19,11 +19,8 @@
     <param name="debug" value="$(arg debug)" />
 
   </node>
-<!-- 
-   <node pkg="robot_state_publisher" type="robot_state_publisher" name="rob_st_pub" >
-      <remap from="robot_description" to="franka_robot_description" />
 
-    </node> -->
+
 
 
 </launch>
