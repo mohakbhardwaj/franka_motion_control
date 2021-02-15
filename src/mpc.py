@@ -254,7 +254,7 @@ class MPCController(object):
                     #                                    [mpc_cmd_des['velocity']]),
                     #                                    axis=0)
                 if not (mpc_qdd_des == self.prev_mpc_qdd_des).all(): #Note: this is not right way to check that command is updated 
-
+                # if ()
                     mpc_cmd_des = self.robot_command_filter.integrate_acc(mpc_qdd_des, 
                                             self.curr_state_filtered_dict,
                                             dt = mpc_cmd_dt - self.tstep)
