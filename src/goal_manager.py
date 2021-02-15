@@ -3,6 +3,9 @@ import rospy
 from geometry_msgs.msg import PoseStamped
 from sensor_msgs.msg import JointState
 import std_msgs.msg
+from interactive_markers.interactive_marker_server import *
+from visualization_msgs.msg import *
+
 from differentiable_robot_model.differentiable_robot_model import DifferentiableRobotModel
 from differentiable_robot_model.coordinate_transform import matrix_to_quaternion, quaternion_to_matrix
 import numpy as np
@@ -53,15 +56,90 @@ class GoalManager(object):
         self.curr_goal.pose.orientation.z = self.goal_ee_quat[0][2]
         self.curr_goal.pose.orientation.w = self.goal_ee_quat[0][3]
 
+        # create an interactive marker server on the topic namespace simple_marker
+        self.server = InteractiveMarkerServer("goal_marker")
+        
+        # create an interactive marker for our server
+        self.int_marker = InteractiveMarker()
+        self.int_marker.header.frame_id = "panda_link0"
+        self.int_marker.name = "goal_marker"
+        self.int_marker.description = "End-effector Goal"
+        self.int_marker.scale = 0.1
+        self.int_marker.pose.position = self.curr_goal.pose.position
 
 
-        # self.curr_goal.pose.position.x = goal_ee_pos_list[0][0]
-        # self.curr_goal.pose.position.y = goal_ee_pos_list[0][1]
-        # self.curr_goal.pose.position.z = goal_ee_pos_list[0][2]
-        # self.curr_goal.pose.orientation.x = goal_ee_quat_list[0][0]
-        # self.curr_goal.pose.orientation.y = goal_ee_quat_list[0][1]
-        # self.curr_goal.pose.orientation.z = goal_ee_quat_list[0][2]
-        # self.curr_goal.pose.orientation.w = goal_ee_quat_list[0][3]
+        # create a grey box marker
+        self.box_marker = Marker()
+        self.box_marker.type = Marker.SPHERE
+        self.box_marker.scale.x = 0.1
+        self.box_marker.scale.y = 0.1
+        self.box_marker.scale.z = 0.1
+        self.box_marker.color.r = 0.0
+        self.box_marker.color.g = 0.5
+        self.box_marker.color.b = 0.5
+        self.box_marker.color.a = 1.0
+
+        # create a non-interactive control which contains the box
+        self.box_control = InteractiveMarkerControl()
+        self.box_control.always_visible = True
+        self.box_control.markers.append(self.box_marker)
+
+        # add the control to the interactive marker
+        self.int_marker.controls.append(self.box_control)
+
+        # create a control which will move the box
+        # this control does not contain any markers,
+        # which will cause RViz to insert two arrows
+        self.move_x_control = InteractiveMarkerControl()
+        self.move_x_control.name = "move_x"
+        self.move_x_control.orientation.w = 1
+        self.move_x_control.orientation.x = 1
+        self.move_x_control.orientation.y = 0
+        self.move_x_control.orientation.z = 0   
+        self.move_x_control.interaction_mode = InteractiveMarkerControl.MOVE_AXIS
+
+        # add the control to the interactive marker
+        self.int_marker.controls.append(self.move_x_control)
+
+        self.move_y_control = InteractiveMarkerControl()
+        self.move_y_control.name = "move_y"
+        self.move_y_control.orientation.w = 1
+        self.move_y_control.orientation.x = 0
+        self.move_y_control.orientation.y = 0
+        self.move_y_control.orientation.z = 1                
+        self.move_y_control.interaction_mode = InteractiveMarkerControl.MOVE_AXIS
+
+        self.int_marker.controls.append(self.move_y_control)
+
+        self.move_z_control = InteractiveMarkerControl()
+        self.move_z_control.name = "move_z"
+        self.move_z_control.orientation.w = 1
+        self.move_z_control.orientation.x = 0
+        self.move_z_control.orientation.y = 1
+        self.move_z_control.orientation.z = 0
+        self.move_z_control.interaction_mode = InteractiveMarkerControl.MOVE_AXIS
+
+        self.int_marker.controls.append(self.move_z_control)
+
+
+
+
+        # add the interactive marker to our collection &
+        # tell the server to call marker_callback() when feedback arrives for it
+        self.server.insert(self.int_marker, self.marker_callback)
+
+        # 'commit' changes and send to all clients
+        self.server.applyChanges()
+
+
+    def marker_callback(self, msg):
+        # p = msg.pose.position
+        # q = msg.pose.orientation
+        # print(msg.marker_name + " is now at " + str(p.x) + ", " + str(p.y) + ", " + str(p.z))
+        # print(msg.marker_name + "orientation is " + str(q.x) + ", " + str(q.y) + ", " + str(q.z) + ", " + str(q.w))
+        self.curr_goal.header = msg.header
+        self.curr_goal.pose = msg.pose
+
 
 
     def goal_callback(self, msg):
