@@ -6,9 +6,16 @@
   <arg name="debug" default="false" />
   <param name="robot_description" textfile="/home/mohak/workspace/stochastic_control/content/assets/urdf/franka_description/franka_panda_no_gripper.urdf" />
   <!-- <param name="robot_description" command="$(find xacro)/xacro $(find franka_panda_description)/robots/panda_arm.urdf.xacro" /> -->
+  <arg name="joint_states_topic" default="joint_states" />
+  <arg name="joint_command_topic" default="joint_command" />
+  <arg name="robot_joint_command_topic" default="robot_joint_command" /> 
 
 
   <node name="joint_pos_controller" type="joint_position_control_node" pkg="franka_motion_control" output="screen">
+    <param name="joint_states_topic" value="$(arg joint_states_topic)" type="str" />
+    <param name="joint_command_topic" value="$(arg joint_command_topic)" type="str" />
+    <param name="robot_joint_command_topic" value="$(arg robot_joint_command_topic)" type="str" />
+
     <param name="robot_ip" value="$(arg robot_ip)" type="str" />
     <param name="dq_max" value="$(arg dq_max)" type="double" />
     <param name="debug" value="$(arg debug)" type="bool" />
@@ -18,6 +25,7 @@
   <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher">
       <!-- <remap from="robot_description" to="my_robot_description" /> -->
       <remap from="joint_states" to="/joint_pos_controller/joint_states" />
+      <param name="publish_frequency" value="1000" />
   </node>
 
 

@@ -40,6 +40,9 @@ private:
     using Vector7i = Eigen::Matrix<int, 7, 1, Eigen::ColMajor>;
 
     ros::NodeHandle nh_; // we will need this, to pass between "main" and constructor
+    std::string joint_states_topic_;
+    std::string joint_command_topic_;
+    std::string robot_joint_command_topic_;
     ros::Subscriber goal_subscriber_;     
     // ros::ServiceServer minimal_service_;
     ros::Publisher  state_publisher_;

@@ -27,8 +27,13 @@ JointPositionController::JointPositionController(ros::NodeHandle* nodehandle, do
     goal_pub_started_ = false;
 
 
+    nh_.getParam("joint_states_topic", joint_states_topic_);
+    nh_.getParam("joint_command_topic", joint_command_topic_);
+    nh_.getParam("robot_joint_command_topic", robot_joint_command_topic_);
     nh_.getParam("joint_names", joint_names_);
 
+    std::cout << joint_command_topic_ << " " << joint_states_topic_ << " " << robot_joint_command_topic_ << std::endl;
+    // std::cin.ignore();
 
     curr_goal_state_.effort.resize(7);
     curr_goal_state_.name.resize(7);
@@ -58,7 +63,7 @@ JointPositionController::JointPositionController(ros::NodeHandle* nodehandle, do
 // "this" keyword is required, to refer to the current instance of JointPositionController
 void JointPositionController::initializeSubscribers(){
     ROS_INFO("Initializing Subscriber");
-    goal_subscriber_ = nh_.subscribe("joint_pos_goal", 1, &JointPositionController::goalCallback,this);  
+    goal_subscriber_ = nh_.subscribe("joint_command", 1, &JointPositionController::goalCallback, this);  
 }
 
 // similar syntax to subscriber, required for setting up services outside of "main()"
@@ -74,7 +79,7 @@ void JointPositionController::initializeSubscribers(){
 void JointPositionController::initializePublishers(){
     ROS_INFO("Initializing Publisher");
     state_publisher_ = nh_.advertise<sensor_msgs::JointState>("joint_states", 1, false); 
-    command_publisher_ = nh_.advertise<sensor_msgs::JointState>("joint_pos_command", 1, false);
+    command_publisher_ = nh_.advertise<sensor_msgs::JointState>("robot_joint_command", 1, false);
 }
 
 
@@ -153,17 +158,6 @@ franka::JointPositions JointPositionController::motion_generator_callback(const 
   }
 
 
-
-
-
-
-
-
-
-
-
-
-
 franka::JointPositions JointPositionController::motion_generator_callback_integrator(const franka::RobotState& robot_state,
                                                                           franka::Duration period) {
     // int dt = period.toSec();
@@ -240,8 +234,7 @@ franka::JointPositions JointPositionController::motion_generator_callback_integr
 
 bool JointPositionController::read_state_callback(const franka::RobotState& robot_state){
     franka::Duration period(0);
-    motion_generator_callback(robot_state, period);
-    // ros::spinOnce();
+    motion_generator_callback_integrator(robot_state, period);
     return ros::ok();
 
 }
