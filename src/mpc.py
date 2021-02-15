@@ -58,9 +58,9 @@ class MPCController(object):
         self.controller.rollout_fn.update_goal(goal_state=self.curr_goal)
 
         #Create filters for state and command
-        self.robot_command_filter = JointStateFilter(filter_coeff={'position': 0.4, 'velocity': 0.4})                                                     
+        self.robot_command_filter = JointStateFilter(filter_coeff={'position': 0.01, 'velocity': 0.01})                                                     
         # self.robot_state_filter = JointStateFilter(filter_coeff={'position': 1.0, 'velocity': 0.1}, dt=0.0)
-        self.robot_state_filter = JointStateFilter(filter_coeff={'position': 1.0, 'velocity': 0.1}, dt=0.0)
+        self.robot_state_filter = JointStateFilter(filter_coeff={'position': 1.0, 'velocity': 1.0}, dt=0.0)
 
         self.spline = CubicSplineInterPolation()
         rospy.loginfo('[MPC]: Controller Initialized')
@@ -68,7 +68,7 @@ class MPCController(object):
         #Initialize ROS
         self.pub = rospy.Publisher(self.command_topic, JointState, queue_size=1, latch=False)
         self.state_sub = rospy.Subscriber(self.robot_state_topic, JointState, self.state_callback)
-        self.goal_sub = rospy.Subscriber(self.goal_topic, PoseStamped, self.goal_callback)
+        # self.goal_sub = rospy.Subscriber(self.goal_topic, PoseStamped, self.goal_callback)
         # self.user_command_sub = rospy.Subscriber(self.user_command_topic, String, self.user_command_callback)
         self.rate = rospy.Rate(self.control_freq)
 
@@ -77,7 +77,7 @@ class MPCController(object):
         self.curr_state_filtered = None
         self.curr_state_raw_dict = {}
         self.curr_state_filtered_dict = {}
-        self.curr_ee_goal = None
+        # self.curr_ee_goal = None
         self.curr_mpc_command = JointState()
         self.curr_mpc_command.name = self.joint_names
         self.stop_controller = False
@@ -118,9 +118,9 @@ class MPCController(object):
         self.curr_state_filtered = self.dict_to_joint_state(self.curr_state_filtered_dict)
 
 
-    def goal_callback(self, msg):
-        self.curr_ee_goal = msg
-        pass
+    # def goal_callback(self, msg):
+        # self.curr_ee_goal = msg
+        # pass
         # goal_ee_pos, goal_ee_quat = self.pose_stamped_to_np(msg)
 
         # self.control_process.update_goal(goal_ee_pos = goal_ee_pos,
@@ -133,15 +133,14 @@ class MPCController(object):
         while not rospy.is_shutdown():
         
             if self.curr_state_raw is not None: # and self.curr_ee_goal is not None:
-                
                 curr_state_np = np.hstack((self.curr_state_filtered_dict['position'], 
                                            self.curr_state_filtered_dict['velocity'], 
                                            self.prev_mpc_qdd_des))
                 # curr_state_np = np.concatenate((self.curr_state_filtered_dict['position'], 
                 #                                 self.curr_state_filtered_dict['velocity'], 
                 #                                 self.prev_mpc_qdd_des), axis=0)
-
                 curr_state_tensor = torch.as_tensor(curr_state_np)
+
                 mpc_next_command, command_dt, val, info = self.control_process.get_command(self.tstep, curr_state_tensor,
                                                                                            debug=False,
                                                                                            control_dt=self.control_process.mpc_dt)
@@ -181,7 +180,7 @@ class MPCController(object):
                 self.curr_mpc_command.effort = np.zeros(7) #What is the third key here??
 
                 self.pub.publish(self.curr_mpc_command)
-                rospy.loginfo('[MPC]: Command published')
+                # rospy.loginfo('[MPC]: Command published')
                 
                 if self.tstep == 0:
                     self.start_t = rospy.get_time()
@@ -224,40 +223,56 @@ class MPCController(object):
                 #                                 self.curr_state_filtered_dict['velocity'], 
                 #                                 self.prev_mpc_qdd_des), axis=1)
                 curr_state_tensor = torch.as_tensor(curr_state_np)
-                next_command, command_dt, val, info = self.control_process.get_command(self.tstep, curr_state_tensor,
-                                                                            debug=False,
-                                                                            control_dt=self.control_process.mpc_dt)
-                                             
-                if(self.exp_params['control_space'] == 'acc'):
-                    qdd_des = np.ravel(next_command[0])
-                    curr_command_dt = command_dt[0].item()
-                    # print('Curr command dt', curr_command_dt, self.tstep)
-                    mpc_cmd_des = self.robot_command_filter.integrate_acc(qdd_des, 
-                                            self.curr_state_filtered_dict,
-                                            dt = 10*(curr_command_dt - self.tstep))
-                    self.curr_mpc_command.position = mpc_cmd_des['position']
-                    self.curr_mpc_command.velocity = mpc_cmd_des['velocity']
-                    self.curr_mpc_command.effort = np.zeros(7) #What is the third key here??
-                    self.prev_mpc_qdd_des = qdd_des
+                mpc_next_command, command_dt, val, info = self.control_process.get_command(self.tstep, curr_state_tensor,
+                                                                                           debug=False,
+                                                                                           control_dt=self.control_process.mpc_dt)
+                mpc_qdd_des = np.ravel(mpc_next_command[0]) 
+                mpc_cmd_dt = command_dt[0].item()
+
+                # mpc_cmd_des = self.robot_command_filter.integrate_acc(mpc_qdd_des, 
+                #                         self.curr_state_filtered_dict,
+                #                         dt = mpc_cmd_dt - self.tstep)
+                                                             
+                # if(self.exp_params['control_space'] == 'acc'):
+                #     qdd_des = np.ravel(next_command[0])
+                #     curr_command_dt = command_dt[0].item()
+                #     # print('Curr command dt', curr_command_dt, self.tstep)
+                #     mpc_cmd_des = self.robot_command_filter.integrate_acc(qdd_des, 
+                #                             self.curr_state_filtered_dict,
+                #                             dt = curr_command_dt - self.tstep)
+                #     self.curr_mpc_command.position = mpc_cmd_des['position']
+                #     self.curr_mpc_command.velocity = mpc_cmd_des['velocity']
+                #     self.curr_mpc_command.effort = np.zeros(7) #What is the third key here??
+                #     self.prev_mpc_qdd_des = qdd_des
                     
-                elif(self.exp_params['control_space'] == 'pos'):
-                    self.curr_mpc_command.position = np.ravel(next_command[0])
-                    self.curr_mpc_command.velocity = np.zeros(7)
-                    self.curr_mpc_command.effort = np.zeros(7)
+                # elif(self.exp_params['control_space'] == 'pos'):
+                #     self.curr_mpc_command.position = np.ravel(next_command[0])
+                #     self.curr_mpc_command.velocity = np.zeros(7)
+                #     self.curr_mpc_command.effort = np.zeros(7)
                     
                     # mpc_des_state_np = np.concatenate(([mpc_cmd_des['position']],
                     #                                    [mpc_cmd_des['velocity']]),
                     #                                    axis=0)
-    
+                if not (mpc_qdd_des == self.prev_mpc_qdd_des).all(): #Note: this is not right way to check that command is updated 
+
+                    mpc_cmd_des = self.robot_command_filter.integrate_acc(mpc_qdd_des, 
+                                            self.curr_state_filtered_dict,
+                                            dt = mpc_cmd_dt - self.tstep)
+                                                             
+
+                self.curr_mpc_command.position = mpc_cmd_des['position']
+                self.curr_mpc_command.velocity = mpc_cmd_des['velocity']
+                self.curr_mpc_command.effort = mpc_qdd_des#np.zeros(7) #What is the third key here??
+
+
                 self.pub.publish(self.curr_mpc_command)
-                rospy.loginfo('[MPC]: Command published')
+                # rospy.loginfo('[MPC]: Command published')
                 
                 if self.tstep == 0:
-                    # self.start_t = time.time()
                     self.start_t = rospy.get_time()
 
-                # self.tstep = time.time() - self.start_t
                 self.tstep = rospy.get_time() - self.start_t
+                self.prev_mpc_qdd_des = mpc_qdd_des
                 
                 # ee_error,_ = self.controller.rollout_fn.current_cost(curr_state_tensor.unsqueeze(0))
                 # ee_error = [x.detach().cpu().item() for x in ee_error]
@@ -373,13 +388,16 @@ if __name__ == '__main__':
 
     # mpc_yml_file = join_path(mpc_configs_path(), robot_params['mpc_yml'])
     mpc_yml_file = os.path.abspath(rospy.get_param('~mpc_yml_file'))
+    joint_states_topic = rospy.get_param('~joint_states_topic')
+    joint_command_topic = rospy.get_param('~joint_command_topic')
+    ee_goal_topic = rospy.get_param('~ee_goal_topic')
     control_freq = rospy.get_param('~control_freq')
     debug = rospy.get_param('~debug')
     joint_names = rospy.get_param('~joint_names')
 
-    mpc_controller = MPCController("joint_pos_controller/joint_states",
-                                   "joint_pos_controller/joint_pos_goal",
-                                   "ee_goal",
+    mpc_controller = MPCController(joint_states_topic,
+                                   joint_command_topic,
+                                   ee_goal_topic,
                                    mpc_yml_file,
                                    x_des_list,
                                    control_freq,
@@ -393,4 +411,4 @@ if __name__ == '__main__':
     #               Press Enter to continue... \n""")
     # input()
     rospy.loginfo('[MPC]: Initiating Control Loop')
-    mpc_controller.control_loop_spline()
+    mpc_controller.control_loop_linear()
