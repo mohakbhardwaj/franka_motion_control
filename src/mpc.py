@@ -68,7 +68,7 @@ class MPCController(object):
         #Initialize ROS
         self.pub = rospy.Publisher(self.command_topic, JointState, queue_size=1, latch=False)
         self.state_sub = rospy.Subscriber(self.robot_state_topic, JointState, self.state_callback)
-        # self.goal_sub = rospy.Subscriber(self.goal_topic, PoseStamped, self.goal_callback)
+        self.goal_sub = rospy.Subscriber(self.goal_topic, PoseStamped, self.goal_callback)
         # self.user_command_sub = rospy.Subscriber(self.user_command_topic, String, self.user_command_callback)
         self.rate = rospy.Rate(self.control_freq)
 
@@ -77,7 +77,7 @@ class MPCController(object):
         self.curr_state_filtered = None
         self.curr_state_raw_dict = {}
         self.curr_state_filtered_dict = {}
-        # self.curr_ee_goal = None
+        self.curr_ee_goal = None
         self.curr_mpc_command = JointState()
         self.curr_mpc_command.name = self.joint_names
         self.stop_controller = False
@@ -118,9 +118,10 @@ class MPCController(object):
         self.curr_state_filtered = self.dict_to_joint_state(self.curr_state_filtered_dict)
 
 
-    # def goal_callback(self, msg):
-        # self.curr_ee_goal = msg
-        # pass
+    def goal_callback(self, msg):
+        self.curr_ee_goal = msg
+        print(self.curr_ee_goal.pose.position)
+        pass
         # goal_ee_pos, goal_ee_quat = self.pose_stamped_to_np(msg)
 
         # self.control_process.update_goal(goal_ee_pos = goal_ee_pos,
