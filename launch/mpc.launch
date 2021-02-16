@@ -35,7 +35,4 @@
     <param name="plot_freq" value="100" />
   </node>
 
-  <node pkg="tf2_ros" type="static_transform_publisher" name="tag_broadcaster" args="1 0 0 0 0 0 1 panda_link0 tag" />
-
-
 </launch>
