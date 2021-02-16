@@ -49,27 +49,28 @@ class MPCController(object):
         self.debug = debug
         self.joint_names = joint_names
 
-        self.goal_state_list = goal_state_list
-        self.curr_goal_idx = 0
-        self.curr_goal = self.goal_state_list[self.curr_goal_idx]
+        # self.goal_state_list = goal_state_list
+        # self.curr_goal_idx = 0
+        # self.curr_goal = self.goal_state_list[self.curr_goal_idx]
 
         # #Initialize MPC controller
-        self.sim_dt = 0.001
+        self.sim_dt = 1.0 / self.control_freq #0.001
         self.initialize_mpc_controller()
-        self.control_process.update_goal(goal_state=self.curr_goal)
-        self.controller.rollout_fn.update_goal(goal_state=self.curr_goal)
+        # self.control_process.update_goal(goal_state=self.curr_goal)
+        # self.controller.rollout_fn.update_goal(goal_state=self.curr_goal)
 
         #Create filters for state and command
         # self.robot_command_filter = JointStateFilter(filter_coeff={'position': 0.01, 'velocity': 0.01})                                                     
         # # self.robot_state_filter = JointStateFilter(filter_coeff={'position': 1.0, 'velocity': 0.1}, dt=0.0)
         # self.robot_state_filter = JointStateFilter(filter_coeff={'position': 1.0, 'velocity': 1.0}, dt=0.0)
-        filter_coeff = {'position':1.0, 'velocity':1.0, 'acceleration':1.0}
-        self.robot_state_filter = RobotStateFilter(filter_coeff=filter_coeff,
+        self.state_filter_coeff = {'position':1.0, 'velocity':0.1, 'acceleration':1.0}
+        self.robot_state_filter = RobotStateFilter(filter_coeff=self.state_filter_coeff,
                                                    dt=self.exp_params['control_dt'],
-                                                   filter_keys=filter_coeff.keys())
-        self.robot_command_filter = JointStateFilter(filter_coeff=filter_coeff, 
+                                                   filter_keys=self.state_filter_coeff.keys())
+        self.command_filter_coeff = {'position': 1.0, 'velocity': 1.0, 'acceleration': 1.0}
+        self.robot_command_filter = JointStateFilter(filter_coeff=self.command_filter_coeff, 
                                                      dt=self.exp_params['control_dt'],
-                                                     filter_keys=filter_coeff.keys())
+                                                     filter_keys=self.command_filter_coeff.keys())
         
         self.spline = CubicSplineInterPolation()
         rospy.loginfo('[MPC]: Controller Initialized')
@@ -93,6 +94,7 @@ class MPCController(object):
         self.zero_acc = np.zeros(7)
         self.prev_mpc_qdd_des = np.zeros(7)
         self.tstep = 0
+        self.prev_tstep = 0
         if self.debug:
             self.robot_q_list_r = []
             self.robot_qd_list_r = []
@@ -123,7 +125,6 @@ class MPCController(object):
         # self.curr_state_filtered_dict = self.curr_state_raw_dict
         # self.curr_state_filtered_dict['velocity'] = self.robot_state_filter.filter_joint_state({'velocity': self.curr_state_raw_dict['velocity']})['velocity']
                     # filtered_state = robot_state_filter.filter_state(current_state, sim_dt)
-        #TODO: WHAT IS SIM_DT?????????????
         self.curr_state_filtered_dict = self.robot_state_filter.filter_state(self.curr_state_raw_dict, self.sim_dt)
         self.curr_state_filtered = self.dict_to_joint_state(self.curr_state_filtered_dict)
 
@@ -131,18 +132,18 @@ class MPCController(object):
     def goal_callback(self, msg):
         #Update mpc goal
         self.curr_ee_goal = msg
-        # goal_ee_pos, goal_ee_quat = self.pose_stamped_to_np(msg)
-        # print(goal_ee_pos, goal_ee_quat)
-        # self.control_process.update_goal(goal_ee_pos = goal_ee_pos,
-        #                                  goal_ee_quat = goal_ee_quat)
-        # self.controller.rollout_fn.update_goal(goal_ee_pos = goal_ee_pos,
-        #                                        goal_ee_quat = goal_ee_quat)
+        goal_ee_pos, goal_ee_quat = self.pose_stamped_to_np(msg)
+        self.control_process.update_goal(goal_ee_pos = goal_ee_pos,
+                                         goal_ee_quat = goal_ee_quat)
+        self.controller.rollout_fn.update_goal(goal_ee_pos = goal_ee_pos,
+                                               goal_ee_quat = goal_ee_quat)
     
     def control_loop_spline(self):
         
         while not rospy.is_shutdown():
         
             if self.curr_state_raw is not None: # and self.curr_ee_goal is not None:
+                self.curr_state_filtered_dict = self.robot_state_filter.filter_state(self.curr_state_raw_dict, self.sim_dt)
                 curr_state_np = np.hstack((self.curr_state_filtered_dict['position'], 
                                            self.curr_state_filtered_dict['velocity'], 
                                            self.curr_state_filtered_dict['acceleration']))
@@ -171,7 +172,6 @@ class MPCController(object):
                     # qdd_des = np.ravel(next_command[0])
                     # curr_command_dt = command_dt[0].item()
                     # print('Curr command dt', curr_command_dt, self.tstep)
-                    #TODO: Remove the joint filter and only use MPC command.
 
                     mpc_des_state_torch = torch.cat((torch.tensor([mpc_cmd_des['position']]),
                                                     torch.tensor([mpc_cmd_des['velocity']])),
@@ -224,8 +224,9 @@ class MPCController(object):
 
         while not rospy.is_shutdown():
         
-            if self.curr_state_raw is not None: # and self.curr_ee_goal is not None:
-                
+            if self.curr_state_raw is not None and self.curr_ee_goal is not None:
+
+                # self.curr_state_filtered_dict = self.robot_state_filter.filter_state(self.curr_state_raw_dict, self.sim_dt)
                 curr_state_np = np.hstack((self.curr_state_filtered_dict['position'], 
                                            self.curr_state_filtered_dict['velocity'], 
                                            self.curr_state_filtered_dict['acceleration']))
@@ -236,14 +237,14 @@ class MPCController(object):
                 # curr_state_tensor = torch.as_tensor(curr_state_np, **self.mpc_tensor_dtype).unsqueeze(0)
 
                 # next_command, command_tstep, val, info = mpc_control.get_command(t_step, curr_state, sim_dt)
-                mpc_next_command, command_dt, val, info = self.control_process.get_command(self.tstep, curr_state_np,
-                                                                                           debug=False,
-                                                                                           control_dt=self.sim_dt)
+                mpc_next_command, mpc_command_tstep, val, info = self.control_process.get_command(self.tstep, curr_state_np,
+                                                                                                  debug=False,
+                                                                                                  control_dt=self.sim_dt)
                 # mpc_qdd_des = np.ravel(mpc_next_command[0]) 
                 # mpc_cmd_dt = command_dt[0].item()
 
-                act = mpc_next_command * 0.5
-                print(mpc_next_command, act)
+                act = mpc_next_command #* 0.5
+                # print(mpc_next_command, act)
                 #act = act.cpu().numpy()[0] # $.cpu().numpy()
                 #act[0] = 0.1
                 #print(act)
@@ -293,14 +294,17 @@ class MPCController(object):
                 self.curr_mpc_command.velocity = command['velocity']
                 self.curr_mpc_command.effort = np.zeros(7) #command['acceleration'] #What is the third key here??
 
-                print(self.curr_mpc_command.position)
+                # print(self.curr_mpc_command.position)
                 self.pub.publish(self.curr_mpc_command)
                 rospy.loginfo('[MPC]: Command published')
-                
+
                 if self.tstep == 0:
                     self.start_t = rospy.get_time()
 
+                self.prev_tstep = self.tstep
                 self.tstep = rospy.get_time() - self.start_t
+                self.sim_dt = self.tstep - self.prev_tstep
+                
                 # self.prev_mpc_qdd_des = mpc_qdd_des
                 
                 # ee_error,_ = self.controller.rollout_fn.current_cost(curr_state_tensor.unsqueeze(0))
@@ -308,13 +312,13 @@ class MPCController(object):
                 # rospy.loginfo(["{:.3f}".format(x) for x in ee_error]) #, "{:.3f}".format(mpc_control.mpc_dt)
                 
                 if self.debug:
-                    self.log_data(qdd_des, [0., 0., 0.])
+                    self.log_data(act, [0., 0., 0.])
 
             elif self.curr_state_raw is None:
                 rospy.loginfo('[MPC]: Waiting for state')
             
             elif self.curr_ee_goal is None:
-                rospy.loginfo('[MPC]: Waiting for goal`')
+                rospy.loginfo('[MPC]: Waiting for ee goal`')
 
             self.rate.sleep()
 
@@ -345,7 +349,6 @@ class MPCController(object):
         mppi_params['d_action'] = dynamics_model.d_action
         mppi_params['action_lows'] = -self.exp_params['model']['max_acc'] * torch.ones(dynamics_model.d_action, device=device, dtype=float_dtype)
         mppi_params['action_highs'] = self.exp_params['model']['max_acc'] * torch.ones(dynamics_model.d_action, device=device, dtype=float_dtype)
-        # init_q = torch.tensor(sim_params['init_state'], device=device)
         init_action = torch.zeros((mppi_params['horizon'], dynamics_model.d_action), device=device)
         # init_action[:,:] += init_q
         # if(self.exp_params['control_space'] == 'acc'):
@@ -366,9 +369,9 @@ class MPCController(object):
         self.robot_qd_list_r.append(self.curr_state_raw.velocity)
         self.robot_qd_des_list_r.append(self.curr_state_raw.effort)
         
-        self.robot_q_list_f.append(self.curr_state_filtered.position)
-        self.robot_qd_list_f.append(self.curr_state_filtered.velocity)
-        self.robot_qd_des_list_f.append(self.curr_state_filtered.effort)
+        self.robot_q_list_f.append(self.curr_state_filtered_dict['position'])
+        self.robot_qd_list_f.append(self.curr_state_filtered_dict['velocity'])
+        self.robot_qd_des_list_f.append(self.curr_state_filtered_dict['acceleration'])
         
         self.command_q_list.append(self.curr_mpc_command.position)
         self.command_qdd_list.append(qdd_des)
@@ -395,13 +398,13 @@ class MPCController(object):
     def joint_state_to_dict(self, msg):
         return {'position': np.array(msg.position), 
                 'velocity': np.array(msg.velocity)} 
-                #'acceleration': np.array(msg.effort) #TODO: Is this right thing to do???????
+                #'acceleration': np.array(msg.effort) 
     
     def dict_to_joint_state(self, dict):
         msg = JointState()
         msg.position = dict['position']
         msg.velocity = dict['velocity']
-        # msg.effort = dict['acceleration'] #TODO: Is this right thing to do????
+        # msg.effort = dict['acceleration'] 
         return msg
     
     def pose_stamped_to_np(self, msg):
