@@ -41,7 +41,8 @@ class GoalManager(object):
         self.n_dofs = 7
         
         # Should update cartesian pose?
-        self.goal_ee_pos, self.goal_ee_rot = self.robot_model.compute_forward_kinematics(self.goal_state[:,0:self.n_dofs], self.goal_state[:,self.n_dofs:self.n_dofs*2], link_name='panda_link8')
+        self.goal_ee_pos, self.goal_ee_rot = self.robot_model.compute_forward_kinematics(self.goal_state[:,0:self.n_dofs], 
+                                             self.goal_state[:,self.n_dofs:self.n_dofs*2], link_name='ee_link')
         self.goal_ee_quat = matrix_to_quaternion(self.goal_ee_rot)
 
         #TBD: Change to None after state machine node has been written
@@ -61,7 +62,7 @@ class GoalManager(object):
         
         # create an interactive marker for our server
         self.int_marker = InteractiveMarker()
-        self.int_marker.header.frame_id = "panda_link0"
+        self.int_marker.header.frame_id = "base_link"
         self.int_marker.name = "goal_marker"
         self.int_marker.description = "End-effector Goal"
         self.int_marker.scale = 0.1

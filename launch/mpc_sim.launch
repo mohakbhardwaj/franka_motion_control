@@ -8,6 +8,8 @@
   <arg name="joint_states_topic" default="joint_states" />
   <arg name="joint_command_topic" default="joint_command" />
   <arg name="ee_goal_topic" default="ee_goal" />
+  <arg name="filtered_state_topic" default="joint_states/filtered" />
+
 
 
 
@@ -15,21 +17,25 @@
     <param name="joint_states_topic" value="$(arg joint_states_topic)" />
     <param name="ee_goal_topic" value="$(arg ee_goal_topic)" />
     <param name="goal_pub_freq" value="$(arg goal_pub_freq)" />
-    <param name="urdf_path" value="/home/mohak/catkin_ws_py2/src/franka_panda_description/robots/panda_arm.urdf" />
+    <!-- <param name="urdf_path" value="/home/mohak/catkin_ws_py2/src/franka_panda_description/robots/panda_arm.urdf" /> -->
+    <param name="urdf_path" value="/home/mohak/workspace/stochastic_control/content/assets/urdf/franka_description/franka_panda_no_gripper.urdf" />
+
+
   </node>
 
-  <!-- <node name="mpc" type="mpc.py" pkg="franka_motion_control" output="screen">
+  <node name="mpc" type="mpc.py" pkg="franka_motion_control" output="screen">
     <rosparam command="load" file="$(find franka_motion_control)/config/robot_settings.yaml" />
     <param name="joint_states_topic" value="$(arg joint_states_topic)" />
     <param name="joint_command_topic" value="$(arg joint_command_topic)" />
     <param name="ee_goal_topic" value="$(arg ee_goal_topic)" />
+    <param name="filtered_state_topic" value="$(arg filtered_state_topic)" />
     <param name="mpc_yml_file" value="$(arg mpc_yml_file)" />
     <param name="control_freq" value="$(arg control_freq)" />
     <param name="debug" value="$(arg debug)" />
   </node>
 
 
-
+<!-- 
   <node name="data_logger" type="control_data_logger.py" pkg="franka_motion_control" output="screen">
     <rosparam command="load" file="$(find franka_motion_control)/config/robot_settings.yaml" />
     <param name="joint_states_topic" value="$(arg joint_states_topic)" />

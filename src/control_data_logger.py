@@ -166,6 +166,8 @@ class DataLogger(object):
         self.ax[2].plot(self.ee_x, 'r')
         self.ax[2].plot(self.ee_y, 'g')
         self.ax[2].plot(self.ee_z, 'b')
+        self.fig.savefig('/home/mohak/catkin_ws/src/franka_motion_control/data/mpc_response.pdf',
+                         dpi=600, bbox_inches="tight")
         plt.show()
 
     def joint_state_to_dict(self, msg):

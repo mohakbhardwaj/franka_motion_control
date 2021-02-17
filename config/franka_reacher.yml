@@ -13,7 +13,7 @@
 use_cuda: True
 cuda_device_num: 0
 
-control_dt: 0.001
+control_dt: 0.01
 #dynamics_dt: 0.01
 run_open_loop: False
 control_space: 'acc'
@@ -25,11 +25,11 @@ model:
     learnable_links: []
   name: "franka_panda"
   dt: 0.01
-  max_acc: 0.5 #10.0
+  max_acc: 1.0 #10.0
 
   dt_traj_params:
     base_dt: 0.01
-    base_ratio: 0.4
+    base_ratio: 0.8
     max_dt: 0.2
   #control_freq: 10
   #sim_freq: 100
@@ -49,7 +49,7 @@ model:
 cost:
   goal_pose:
     vec_weight: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
-    weight: [0.01,100.0]
+    weight: [0.0,100.0]
     position_gaussian_params: {'n':0, 'c':0.2, 's':0.0, 'r':10.0}
     orientation_gaussian_params: {'n':0, 'c':0.2, 's':0.0, 'r':10.0}
     hinge_val: -1
@@ -120,26 +120,26 @@ cost:
 mppi:
   horizon           : 50
   init_cov          : 0.01 #.5
-  gamma             : 0.99
+  gamma             : 0.98
   n_iters           : 1
-  step_size_mean    : 0.9 #0.05 #0.05
+  step_size_mean    : 0.98 #0.05 #0.05
   step_size_cov     : 0.6
-  beta              : 0.1 #1.0
+  beta              : 0.001 #1.0
   alpha             : 1
   num_particles     : 500 #10000
   update_cov        : False
   cov_type          : 'diag_AxA' # 
-  kappa             : 0.001
+  kappa             : 0.00
   null_act_frac     : 0.01 #0.1
   sample_mode       : 'mean'
-  base_action       : 'null'
+  base_action       : 'repeat'
   squash_fn         : 'clamp'
   hotstart          : True
   visual_traj       : 'ee_pos_seq'
   sample_params:
     type: 'halton_stomp'
     fixed_samples: True
-    sample_ratio: 0.4
+    sample_ratio: 0.0
     seed: 0
-    filter_coeffs: [0.25, 0.8, 0.0]
+    filter_coeffs: [0.3, 0.5, 0.2]
 
