@@ -7,6 +7,7 @@
 #include <franka/exception.h>
 #include <franka/robot.h>
 
+
 #include <ros/ros.h>
 #include <sensor_msgs/JointState.h>
 
@@ -28,30 +29,32 @@ int main(int argc, char** argv)
     nh.getParam("robot_ip", robot_ip);
     ROS_INFO("robot_ip: %s", robot_ip.c_str());
     
-    double dq_max;
-    nh.getParam("dq_max", dq_max);
-    ROS_INFO("dq_max %f", dq_max);
+    // double dq_max;
+    // nh.getParam("dq_max", dq_max);
+    // ROS_INFO("dq_max %f", dq_max);
 
     bool debug;
     nh.getParam("debug", debug);
     ROS_INFO("Debug mode: %d",  debug);
 
     ROS_INFO("main: instantiating JointPositionController");
-    JointPositionController controller(&nh, dq_max);  //instantiate an JointPositionController object and pass in pointer to nodehandle for constructor to use
 
     try {
-        ROS_INFO("Connecting to robot %s", robot_ip);
-        franka::Robot robot(robot_ip);
-        controller.setDefaultBehavior(robot);
+        // ROS_INFO("Connecting to robot %s", robot_ip);
+        // franka::Robot robot(robot_ip);
+        JointPositionController controller(&nh, robot_ip);
+
+        // controller.setDefaultBehavior(robot);
         // First move the robot to a home joint configuration
         // std::array<double, 7> q_home ={{0, -M_PI_4, 0, -3 * M_PI_4, 0, M_PI_2, M_PI_4}};
         // controller.setJointPositionGoal(q_home);   
         if(debug){
             // reads robot state but does not execute commands
-            robot.read([&](const franka::RobotState& robot_state) {
-                return controller.read_state_callback(robot_state);               
-            }
-            );
+            // robot.read([&](const franka::RobotState& robot_state) {
+            //     return controller.read_state_callback(robot_state);               
+            // }
+            // );
+            controller.read_loop();
         }
         else{
             //actually controls the robot using published commands
@@ -60,11 +63,18 @@ int main(int argc, char** argv)
                         "Press Enter to continue... \n");
             std::cin.ignore();            
             
-            robot.control([&](const franka::RobotState& robot_state, franka::Duration period) 
-                                       -> franka::JointPositions {
-                return controller.motion_generator_callback_integrator(robot_state, period);
-            }
-        );
+            // robot.control([&](const franka::RobotState& robot_state, franka::Duration period) 
+            //                            -> franka::JointPositions {
+            //     return controller.motion_generator_callback_integrator(robot_state, period);
+            // }, franka::ControllerMode::kJointImpedance, true, 1000.0);
+            controller.control_loop();
+
+            // robot.control([&](const franka::RobotState& robot_state, franka::Duration period) 
+            //                            -> franka::Torques {
+            //     return controller.torque_controller_callback(robot_state, period);
+            // }, true, 1000.0);        
+        
+        
         }
         ROS_INFO("Finished motion.");
 
@@ -76,6 +86,57 @@ int main(int argc, char** argv)
 
     return 0;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+//         // controller.setDefaultBehavior(robot);
+//         // First move the robot to a home joint configuration
+//         // std::array<double, 7> q_home ={{0, -M_PI_4, 0, -3 * M_PI_4, 0, M_PI_2, M_PI_4}};
+//         // controller.setJointPositionGoal(q_home);   
+//         if(debug){
+//             // reads robot state but does not execute commands
+//             robot.read([&](const franka::RobotState& robot_state) {
+//                 return controller.read_state_callback(robot_state);               
+//             }
+//             );
+//         }
+//         else{
+//             //actually controls the robot using published commands
+//             ROS_INFO("WARNING: This example will move the robot! \n"
+//                         "Please make sure to have the user stop button at hand! \n"
+//                         "Press Enter to continue... \n");
+//             std::cin.ignore();            
+            
+//             // robot.control([&](const franka::RobotState& robot_state, franka::Duration period) 
+//             //                            -> franka::JointPositions {
+//             //     return controller.motion_generator_callback_integrator(robot_state, period);
+//             // }, franka::ControllerMode::kJointImpedance, true, 1000.0);
+//             robot.control([&](const franka::RobotState& robot_state, franka::Duration period) 
+//                                        -> franka::Torques {
+//                 return controller.torque_controller_callback(robot_state, period);
+//             }, true, 1000.0);        
+        
+        
+//         }
+//         ROS_INFO("Finished motion.");
+
+
+//     } catch (const franka::Exception& e) {
+//         std::cout << e.what() << std::endl;
+//         return -1;
+//     }
+
+//     return 0;
+// }
 
 
 
