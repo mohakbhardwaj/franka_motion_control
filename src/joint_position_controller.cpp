@@ -7,30 +7,31 @@
 
 // this header incorporates all the necessary #include files and defines the class "JointPositionController"
 #include "joint_position_controller.h"
-// #include<ros/ros.h>
 
-//CONSTRUCTOR:  this will get called whenever an instance of this class is created
-// want to put all dirty work of initializations here
-// odd syntax: have to pass nodehandle pointer into constructor for constructor to build subscribers, etc
-JointPositionController::JointPositionController(ros::NodeHandle* nodehandle, double dq_max):
-                        nh_(*nodehandle), dq_max_(dq_max) //std::string robot_ip, robot_(robot_ip), 
-{ // constructor
-    ROS_INFO("in class constructor of JointPositionController");
+
+// JointPositionController::JointPositionController(ros::NodeHandle* nodehandle, franka::Robot& robot):
+
+JointPositionController::JointPositionController(ros::NodeHandle* nodehandle, std::string robot_ip):
+                        nh_(*nodehandle), robot_(robot_ip), model_(robot_.loadModel()) //std::string robot_ip, robot_(robot_ip), 
+{   ROS_INFO("in class constructor of JointPositionController");
     initializeSubscribers(); // package up the messy work of creating subscribers; do this overhead in constructor
     initializePublishers();
     // initializeServices();
     // robot_ip_ = robot_ip;
-    // setDefaultBehavior(robot_);
     curr_q_.setZero();
     curr_q_goal_.setZero();
     delta_q_.setZero();
+    
+    // robot_ =
+    // model_ = robot_.loadModel();
+    setDefaultBehavior(robot_);
+
     goal_pub_started_ = false;
-
-
     nh_.getParam("joint_states_topic", joint_states_topic_);
     nh_.getParam("joint_command_topic", joint_command_topic_);
     nh_.getParam("robot_joint_command_topic", robot_joint_command_topic_);
     nh_.getParam("joint_names", joint_names_);
+    nh_.getParam("dq_max", dq_max_);
 
     std::cout << joint_command_topic_ << " " << joint_states_topic_ << " " << robot_joint_command_topic_ << std::endl;
     // std::cin.ignore();
@@ -86,6 +87,7 @@ void JointPositionController::initializePublishers(){
 void JointPositionController::goalCallback(const sensor_msgs::JointState& msg) {
     curr_goal_state_ = msg;
     curr_q_goal_ = Eigen::VectorXd::Map(&curr_goal_state_.position[0], 7);
+    curr_qd_goal_ = Eigen::VectorXd::Map(&curr_goal_state_.velocity[0], 7);
     goal_pub_started_ = true;
 }
 
@@ -97,9 +99,9 @@ void JointPositionController::setJointPositionGoal(std::array<double, 7>& q_goal
 bool JointPositionController::publishRobotState(const franka::RobotState& robot_state){
     curr_robot_state_.header.stamp = ros::Time::now();
     for (size_t i = 0; i < curr_robot_state_.position.size(); i++) {
-        curr_robot_state_.position[i] = robot_state.q_d[i]; //robot_state.q_d[i];
-        curr_robot_state_.velocity[i] = robot_state.dq_d[i];
-        curr_robot_state_.effort[i] = robot_state.dq[i];
+        curr_robot_state_.position[i] = robot_state.q[i]; //robot_state.q_d[i];
+        curr_robot_state_.velocity[i] = robot_state.dq[i];
+        curr_robot_state_.effort[i] = robot_state.dq_d[i];
     }
     state_publisher_.publish(curr_robot_state_);
     return true;
@@ -108,9 +110,9 @@ bool JointPositionController::publishRobotState(const franka::RobotState& robot_
 bool JointPositionController::publishJointPosCommand(const franka::JointPositions& joint_pos_command){
     curr_joint_command_.header.stamp = ros::Time::now();
     for (size_t i = 0; i < curr_joint_command_.position.size(); i++) {
-        curr_robot_state_.position[i] = joint_pos_command.q[i];
-        curr_robot_state_.velocity[i] = 0.0;
-        curr_robot_state_.effort[i] = 0.0;
+        curr_joint_command_.position[i] = joint_pos_command.q[i];
+        curr_joint_command_.velocity[i] = 0.0;
+        curr_joint_command_.effort[i] = 0.0;
     }
     command_publisher_.publish(curr_joint_command_);
     return true;
@@ -127,7 +129,7 @@ franka::JointPositions JointPositionController::motion_generator_callback(const 
     curr_q_ = Vector7d(robot_state.q_d.data());
 
     Vector7d q_desired;
-    q_desired = curr_q_;
+    // q_desired = curr_q_;
 
     if(goal_pub_started_){
         q_desired =  curr_q_goal_; 
@@ -158,11 +160,22 @@ franka::JointPositions JointPositionController::motion_generator_callback(const 
   }
 
 
+
+
 franka::JointPositions JointPositionController::motion_generator_callback_integrator(const franka::RobotState& robot_state,
                                                                           franka::Duration period) {
     // int dt = period.toSec();
     double dt = 0.001;
     time_ += period.toSec();
+    // std::cout << period.toSec() << std::endl;
+
+    // double curr_time =ros::Time::now().toSec();
+
+    // std::cout << (curr_time - prev_time_) << std::endl;
+    
+    // prev_time_ = curr_time;
+    
+    
     std::array<bool, 7> joint_motion_finished{};
     bool motion_finished;
 
@@ -193,7 +206,7 @@ franka::JointPositions JointPositionController::motion_generator_callback_integr
 
 
         // Check if goal is reached
-        std::cout << delta_q_[0] << std::endl;
+        // std::cout << delta_q_[0] << std::endl;
         for (size_t i = 0; i < 7; i++) {
             if (std::abs(delta_q_[i]) <= kDeltaQMotionFinished) {
                 // delta_q_[i] = 0.0;
@@ -232,17 +245,75 @@ franka::JointPositions JointPositionController::motion_generator_callback_integr
 
   }
 
-bool JointPositionController::read_state_callback(const franka::RobotState& robot_state){
-    franka::Duration period(0);
-    motion_generator_callback_integrator(robot_state, period);
-    return ros::ok();
+
+franka::Torques JointPositionController::torque_controller_callback(const franka::RobotState& robot_state, franka::Duration period){
+    time_ += period.toSec();
+    publishRobotState(robot_state);
+
+    std::array<double, 7> coriolis = model_.coriolis(robot_state); // Coriolis torque for current state
+    std::array<double, 7> tau_d_calculated, tau_d_rate_limited;
+    
+    if(goal_pub_started_){
+        for (size_t i = 0; i < 7; i++) {
+            tau_d_calculated[i] =  
+                P_[i] * (curr_q_goal_[i] - robot_state.q[i]) + D_[i] * (curr_qd_goal_[i] - robot_state.dq[i]) + coriolis[i];
+        }
+
+    }
+    else{
+        ROS_INFO("Waiting for goal...");
+        tau_d_calculated = coriolis;
+    }
+    std::cout << "calculated torque: ";
+    for(size_t i = 0; i < 7; ++i){
+        std::cout << tau_d_calculated[i] << " ";
+        
+    }
+    std::cout << "\n";
+    //Apply rate limiting (applied by default also)
+    tau_d_rate_limited =
+            franka::limitRate(franka::kMaxTorqueRate, tau_d_calculated, robot_state.tau_J_d);
+    
+    // if(!ros::ok()){
+    //     ROS_INFO("Ros shutdown");
+    // }
+
+    // tau_d_rate_limited = {{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0}};
+    ros::spinOnce();
+    return tau_d_rate_limited;
+}
+
+
+
+void JointPositionController::read_loop(){
+
+    robot_.read([&](const franka::RobotState& robot_state) {
+        return read_state_callback(robot_state);               
+    }
+    );
+}
+
+void JointPositionController::control_loop(){
+    
+    while(ros::ok()){
+        robot_.control([&](const franka::RobotState& robot_state, franka::Duration period) 
+                                            -> franka::Torques {
+            return torque_controller_callback(robot_state, period);
+        }
+        );
+    }
+    std::cout << "ROS Shutdown" << std::endl;
 
 }
 
-// void JointPositionController::initiate_robot_control_loop(){
-//     robot_.control(motion_generator_callback);
-// }
 
+bool JointPositionController::read_state_callback(const franka::RobotState& robot_state){
+    franka::Duration period;
+    // motion_generator_callback_integrator(robot_state, period);
+    torque_controller_callback(robot_state, period);
+    return ros::ok();
+
+}
 
 void JointPositionController::setDefaultBehavior(franka::Robot& robot) {
 //   robot.setCollisionBehavior(
@@ -257,7 +328,7 @@ void JointPositionController::setDefaultBehavior(franka::Robot& robot) {
         {{20.0, 20.0, 20.0, 25.0, 25.0, 25.0}}, {{20.0, 20.0, 20.0, 25.0, 25.0, 25.0}});
 
 //   robot.setJointImpedance({{3000, 3000, 3000, 2500, 2500, 2000, 2000}});
-  robot.setJointImpedance({{300, 300, 300, 250, 250, 200, 200}});
+//   robot.setJointImpedance({{300, 300, 300, 250, 250, 200, 200}});
 //   robot.setJointImpedance({{30, 30, 30, 25, 25, 20, 20}});
 
 //   robot.setCartesianImpedance({{3000, 3000, 3000, 300, 300, 300}});
