@@ -63,11 +63,11 @@ class MPCController(object):
         # self.robot_command_filter = JointStateFilter(filter_coeff={'position': 0.01, 'velocity': 0.01})                                                     
         # # self.robot_state_filter = JointStateFilter(filter_coeff={'position': 1.0, 'velocity': 0.1}, dt=0.0)
         # self.robot_state_filter = JointStateFilter(filter_coeff={'position': 1.0, 'velocity': 1.0}, dt=0.0)
-        self.state_filter_coeff = {'position':1.0, 'velocity':0.1, 'acceleration':1.0}
+        self.state_filter_coeff = {'position':1.0, 'velocity':1.0, 'acceleration':1.0}
         self.robot_state_filter = RobotStateFilter(filter_coeff=self.state_filter_coeff,
                                                    dt=self.exp_params['control_dt'],
                                                    filter_keys=self.state_filter_coeff.keys())
-        self.command_filter_coeff = {'position': 0.8, 'velocity': 0.8, 'acceleration': 1.0}
+        self.command_filter_coeff = {'position': 0.5, 'velocity': 0.8, 'acceleration': 1.0}
         self.robot_command_filter = JointStateFilter(filter_coeff=self.command_filter_coeff, 
                                                      dt=self.exp_params['control_dt'],
                                                      filter_keys=self.command_filter_coeff.keys())
@@ -241,8 +241,8 @@ class MPCController(object):
                 # curr_state_tensor = torch.as_tensor(curr_state_np, **self.mpc_tensor_dtype) #.unsqueeze(0)
 
                 # next_command, command_tstep, val, info = mpc_control.get_command(t_step, curr_state, sim_dt)
-                if (self.tstep == 0) or (self.tstep - self.last_command_tstep) >= 0.01 \
-                    or (not self.spline.command_available(self.tstep)):
+                if (self.tstep == 0) or (self.tstep - self.last_command_tstep) >= 0.01: # \
+                    # or (not self.spline.command_available(self.tstep)):
                     mpc_next_command, mpc_command_tstep, val, info = self.control_process.get_command(self.tstep, curr_state_np,
                                                                                                      debug=False,
                                                                                                      control_dt=0.01) 
@@ -259,19 +259,20 @@ class MPCController(object):
                                                     torch.tensor([command['velocity']])),
                                                     dim=0)
                     # curr_state_spline = torch.as_tensor(curr_state_np[0:14].reshape(2,7))      
-                    curr_state_spline = curr_state_tensor[0:14].reshape(2,7)
+                    # curr_state_spline = curr_state_tensor[0:14].reshape(2,7)
                     #fit spline
-                    self.spline.fit(curr_state_spline, self.tstep, mpc_des_state_torch, self.tstep + 0.01)   
+                    # self.spline.fit(curr_state_spline, self.tstep, mpc_des_state_torch, self.tstep + 0.01)   
                     
-                    if self.tstep > 0:
-                        self.last_command_tstep = rospy.get_time() - self.start_t   
+                    # if self.tstep > 0:
+                    #     self.last_command_tstep = rospy.get_time() - self.start_t   
 
 
 
-                spline_cmd_des = self.spline.get_command(self.tstep)
-                self.curr_mpc_command.position = spline_cmd_des[0].detach().numpy() #command['position']
-                self.curr_mpc_command.velocity = np.zeros(7) #command['velocity']
-                self.curr_mpc_command.effort = np.zeros(7) #command['acceleration'] #What is the third key here??
+                # spline_cmd_des = self.spline.get_command(self.tstep)
+                # print(spline_cmd_des[0].detach().numpy())
+                # self.curr_mpc_command.position = spline_cmd_des[0].detach().numpy() #command['position']
+                # self.curr_mpc_command.velocity = np.zeros(7) #command['velocity']
+                # self.curr_mpc_command.effort = np.zeros(7) #command['acceleration'] #What is the third key here??
 
 
 
@@ -305,9 +306,9 @@ class MPCController(object):
                 #                             dt = mpc_cmd_dt - self.tstep)
                                                              
 
-                # self.curr_mpc_command.position = command['position']
-                # self.curr_mpc_command.velocity = command['velocity']
-                # self.curr_mpc_command.effort = np.zeros(7) #command['acceleration'] #What is the third key here??
+                self.curr_mpc_command.position = command['position']
+                self.curr_mpc_command.velocity = command['velocity']
+                self.curr_mpc_command.effort = np.zeros(7) #command['acceleration'] #What is the third key here??
 
                 self.pub.publish(self.curr_mpc_command)
                 rospy.loginfo('[MPC]: Command published')

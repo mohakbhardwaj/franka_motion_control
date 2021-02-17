@@ -3,7 +3,7 @@
 <launch>
   <!-- <arg name="mpc_yml_file" default="$(find franka_motion_control)/config/franka_reacher.yml" /> -->
   <arg name="mpc_yml_file" default="/home/mohak/workspace/stochastic_control/content/configs/mpc_tools/franka_reacher.yml" />
-  <arg name="control_freq" default="1000" />
+  <arg name="control_freq" default="100" />
   <arg name="goal_pub_freq" default="10" />
   <arg name="debug" default="False" />
   <arg name="joint_states_topic" default="joint_pos_controller/joint_states" />

@@ -9,24 +9,25 @@ data = np.load('mpc_data.npz')
 
 fig, ax = plt.subplots(6,1)
 fig2, ax2 = plt.subplots(2,1)
+colors = ['#1b9e77', '#d95f02', '#7570b3', '#e7298a', '#66a61e', '#e6ab02', '#a6761d']
 
 for i in range(data['q_robot_r'].shape[1]):
 # i = 3
-    if i == 0:
-        ax[0].plot(data['q_robot_r'][:,i], label='raw')
-        ax[0].plot(data['q_robot_f'][:,i], label='filtered')
-    else:
-        ax[0].plot(data['q_robot_r'][:,i])
-        ax[0].plot(data['q_robot_f'][:,i])
+    # if i == 0:
+    ax[0].plot(data['q_robot_r'][:,i], color=colors[i], label='joint_{}_raw'.format(i))
+    ax[0].plot(data['q_robot_f'][:,i], color= colors[i])
+    # else:
+    #     ax[0].plot(data['q_robot_r'][:,i])
+    #     ax[0].plot(data['q_robot_f'][:,i])
 
-    ax[1].plot(data['qd_robot_r'][:,i])
-    ax[1].plot(data['qd_robot_f'][:,i])
+    ax[1].plot(data['qd_robot_r'][:,i], color=colors[i])
+    ax[1].plot(data['qd_robot_f'][:,i], color=colors[i])
 
-    ax[2].plot(data['qd_des_robot_r'][:,i])
+    ax[2].plot(data['qd_des_robot_r'][:,i], color=colors[i])
     # ax[2].plot(data['qd_des_robot_f'][:,i])
 
-    ax[3].plot(data['q_cmd'][:,i])
-    ax[4].plot(data['qdd_cmd'][:,i])
+    ax[3].plot(data['q_cmd'][:,i], color=colors[i])
+    ax[4].plot(data['qdd_cmd'][:,i], color=colors[i])
 
 ax[0].set_title('Robot Joint Positions')
 ax[1].set_title('Robot Joint Velocities (measured)')
