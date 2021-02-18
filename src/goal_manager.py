@@ -33,7 +33,8 @@ class GoalManager(object):
         self.publish_freq = publish_freq
     
         self.pub = rospy.Publisher(self.pub_topic, PoseStamped, queue_size=1, latch=False)
-        self.sub = rospy.Subscriber(self.sub_topic, JointState, self.goal_callback)
+        self.state_sub = rospy.Subscriber(self.sub_topic, JointState, self.state_callback)
+        # self.state_sub = rospy.Subscriberrobot_state       
         self.rate = rospy.Rate(self.publish_freq)
         self.tensor_args = {'device':"cpu", 'dtype':torch.float32}
 
@@ -43,6 +44,7 @@ class GoalManager(object):
         self.goal_state = torch.as_tensor(q_des_list[0], **self.tensor_args).unsqueeze(0)
         self.n_dofs = 7
         
+        self.curr_robot_state = None
         # Should update cartesian pose?
         self.goal_ee_pos, self.goal_ee_rot = self.robot_model.compute_forward_kinematics(self.goal_state[:,0:self.n_dofs], 
                                              self.goal_state[:,self.n_dofs:self.n_dofs*2], link_name='ee_link')
@@ -146,8 +148,8 @@ class GoalManager(object):
 
 
 
-    def goal_callback(self, msg):
-        # self.curr_goal = msg
+    def state_callback(self, msg):
+        self.curr_robot_state = msg
         pass
     
     def publish_goal_loop(self):

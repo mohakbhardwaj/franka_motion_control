@@ -9,7 +9,8 @@ M_PI_2 = np.pi / 2.0
 M_PI_4 = np.pi / 4.0
 M_PI_8 = np.pi/8.0
 
-
+joint_to_tune = 4
+increment = 0.05
 # q_goal = np.array([0, -M_PI_4, 0, -3 * M_PI_4, 0, M_PI_2, M_PI_4,\
 #                   0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
 
@@ -17,7 +18,7 @@ M_PI_8 = np.pi/8.0
 q_goal = np.array([0, -M_PI_4, 0, -3 * M_PI_4, 0, M_PI_2, M_PI_4,\
                   0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
 
-q_goal += 0.001
+q_goal[joint_to_tune] += increment
 
 #Don't send here
 # q_goal = np.array([-0.45, 0.68, 0.0, -1.4, 0.0, 2.4,0.0,
@@ -49,17 +50,18 @@ def goal_pub():
     plot()
 
 def plot():
-    global q_list, qd_list
+    global q_list, qd_list, joint_to_tune
     fig, ax = plt.subplots(2,1)
     num_pts = len(q_list)
     q_list = np.array(q_list)
     qd_list = np.array(qd_list)
     if num_pts > 1:
-        for i in range(7):
-            ax[0].plot(range(num_pts), [q_goal[i]]*num_pts, linestyle='dashed', color=colors[i], label='joint_{}_des'.format(i))
-            ax[0].plot(range(num_pts), q_list[:,i], color=colors[i])
-            ax[1].plot(range(num_pts), [q_goal[i+7]]*num_pts, linestyle='dashed', color=colors[i])
-            ax[1].plot(range(num_pts), qd_list[:,i], color=colors[i])
+        # for i in range(7):
+        i = joint_to_tune
+        ax[0].plot(range(num_pts), [q_goal[i]]*num_pts, linestyle='dashed', color=colors[i], label='joint_{}_des'.format(i))
+        ax[0].plot(range(num_pts), q_list[:,i], color=colors[i])
+        ax[1].plot(range(num_pts), [q_goal[i+7]]*num_pts, linestyle='dashed', color=colors[i])
+        ax[1].plot(range(num_pts), qd_list[:,i], color=colors[i])
         ax[0].set_title('Joint Position')
         ax[1].set_title('Joint Velocity')
         ax[0].legend()
