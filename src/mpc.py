@@ -4,8 +4,9 @@ import numpy as np
 import rospy
 import rospkg
 from geometry_msgs.msg import PoseStamped
-from sensor_msgs.msg import JointState
+from sensor_msgs.msg import JointState, PointCloud2
 from std_msgs.msg import String
+import tf2_ros
 import torch
 torch.multiprocessing.set_start_method('spawn',force=True)
 
@@ -27,25 +28,30 @@ np.set_printoptions(precision=6)
 #               np.array([0.9243, -0.7062,  0.1615])]
 
 
-franka_bl_state = np.array([-0.45, 0.68, 0.0, -1.4, 0.0, 2.4,0.0,
-                            0.0,0.0,0.0,0.0,0.0,0.0,0.0])
-franka_br_state = np.array([0.45, 0.68, 0.0, -1.4, 0.0, 2.4,0.0,
-                            0.0,0.0,0.0,0.0,0.0,0.0,0.0])
-x_des_list = [franka_bl_state, franka_br_state]#, drop_state, home_state]
+# franka_bl_state = np.array([-0.45, 0.68, 0.0, -1.4, 0.0, 2.4,0.0,
+#                             0.0,0.0,0.0,0.0,0.0,0.0,0.0])
+# franka_br_state = np.array([0.45, 0.68, 0.0, -1.4, 0.0, 2.4,0.0,
+#                             0.0,0.0,0.0,0.0,0.0,0.0,0.0])
+# x_des_list = [franka_bl_state, franka_br_state]#, drop_state, home_state]
 
 
-
+#goal_state_list
 
 class MPCController(object):
-    def __init__(self, robot_state_topic, command_topic, goal_topic, filtered_state_topic, mpc_yml_file, goal_state_list, control_freq, debug=False, joint_names=[]):
+    def __init__(self, robot_state_topic, command_topic, goal_topic, pointcloud_topic,
+                filtered_state_topic, mpc_yml_file, control_freq, fixed_frame,  
+                pointcloud_frame, debug=False, joint_names=[]):
         #user_command_topic
         self.robot_state_topic = robot_state_topic
         self.command_topic = command_topic
         self.goal_topic = goal_topic
+        self.pointcloud_topic = pointcloud_topic
         self.filtered_state_topic = filtered_state_topic
         # self.user_command_topic = user_command_topic
         self.mpc_yml_file = mpc_yml_file
         self.control_freq = control_freq
+        self.fixed_frame = fixed_frame
+        self.pointcloud_frame = pointcloud_frame
         self.debug = debug
         self.joint_names = joint_names
 
@@ -77,9 +83,12 @@ class MPCController(object):
         rospy.loginfo('[MPC]: Controller Initialized')
 
         #Initialize ROS
-        self.pub = rospy.Publisher(self.command_topic, JointState, queue_size=1, latch=False)
+        self.command_pub = rospy.Publisher(self.command_topic, JointState, queue_size=1, latch=False)
+        self.filtered_state_pub = rospy.Publisher(self.filtered_state_topic, JointState, queue_size=1, latch=False)
+
         self.state_sub = rospy.Subscriber(self.robot_state_topic, JointState, self.state_callback)
         self.goal_sub = rospy.Subscriber(self.goal_topic, PoseStamped, self.goal_callback)
+        self.pointcloud_sub = rospy.Subscriber(self.pointcloud_topic, PointCloud2, self.pointcloud_callback)
         # self.user_command_sub = rospy.Subscriber(self.user_command_topic, String, self.user_command_callback)
         self.rate = rospy.Rate(self.control_freq)
 
@@ -91,6 +100,7 @@ class MPCController(object):
         self.curr_ee_goal = None
         self.curr_ee_goal_pos = None
         self.curr_ee_goal_quat = None
+        self.curr_pointcloud = None
         self.curr_mpc_command = JointState()
         self.curr_mpc_command.name = self.joint_names
         self.stop_controller = False
@@ -133,7 +143,11 @@ class MPCController(object):
                     # filtered_state = robot_state_filter.filter_state(current_state, sim_dt)
         self.curr_state_filtered_dict = self.robot_state_filter.filter_state(self.curr_state_raw_dict, 0.001)
         self.curr_state_filtered = self.dict_to_joint_state(self.curr_state_filtered_dict)
+        self.filtered_state_pub.publish(self.curr_state_filtered)
 
+
+    def pointcloud_callback(self, msg):
+        self.curr_pointcloud = msg
 
     def goal_callback(self, msg):
         #Update mpc goal
@@ -195,7 +209,7 @@ class MPCController(object):
                 self.curr_mpc_command.velocity = np.zeros(7) #spline_cmd_des[1] #return spline derivative as well   
                 self.curr_mpc_command.effort = np.zeros(7) #What is the third key here??
 
-                self.pub.publish(self.curr_mpc_command)
+                self.command_pub.publish(self.curr_mpc_command)
                 # rospy.loginfo('[MPC]: Command published')
                 
                 if self.tstep == 0:
@@ -318,7 +332,7 @@ class MPCController(object):
                 # print('mpc acc', act)
                 # print('curr position', self.curr_state_filtered.position)
                 # print('integrated position', self.curr_mpc_command.position)
-                self.pub.publish(self.curr_mpc_command)
+                self.command_pub.publish(self.curr_mpc_command)
                 rospy.loginfo('[MPC]: Command published')
 
                 if self.tstep == 0:
@@ -457,20 +471,24 @@ if __name__ == '__main__':
     joint_states_topic = rospy.get_param('~joint_states_topic')
     joint_command_topic = rospy.get_param('~joint_command_topic')
     ee_goal_topic = rospy.get_param('~ee_goal_topic')
+    pointcloud_topic = rospy.get_param('~pointcloud_topic')
     filtered_state_topic = rospy.get_param('~filtered_state_topic')
     control_freq = rospy.get_param('~control_freq')
+    fixed_frame = rospy.get_param('~fixed_frame')
+    pointcloud_frame = rospy.get_param('~pointcloud_frame')
     debug = rospy.get_param('~debug')
     joint_names = rospy.get_param('~joint_names')
 
     mpc_controller = MPCController(joint_states_topic,
                                    joint_command_topic,
                                    ee_goal_topic,
+                                   pointcloud_topic,
                                    filtered_state_topic,
                                    mpc_yml_file,
-                                   x_des_list,
                                    control_freq,
                                    debug,
                                    joint_names)
+    #                                   x_des_list,
 
     # while not rospy.is_shutdown():
     #     rospy.spin()

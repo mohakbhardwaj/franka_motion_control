@@ -10,23 +10,23 @@ M_PI_4 = np.pi / 4.0
 M_PI_8 = np.pi/8.0
 
 joint_to_tune = 4
-increment = 0.05
+increment = 0.1
 # q_goal = np.array([0, -M_PI_4, 0, -3 * M_PI_4, 0, M_PI_2, M_PI_4,\
 #                   0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
 
 #Home
-q_goal = np.array([0, -M_PI_4, 0, -3 * M_PI_4, 0, M_PI_2, M_PI_4,\
-                  0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+# q_goal = np.array([0, -M_PI_4, 0, -3 * M_PI_4, 0, M_PI_2, M_PI_4,\
+#                   0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
 
-q_goal[joint_to_tune] += increment
+# q_goal[joint_to_tune] += increment
 
 #Don't send here
 # q_goal = np.array([-0.45, 0.68, 0.0, -1.4, 0.0, 2.4,0.0,
 #                             0.0,0.0,0.0,0.0,0.0,0.0,0.0])
 
 #Send here
-# q_goal = np.array([-0.45, 0.3, 0.0, -1.4, 0.0, 2.4,0.0,
-#                    0.0,0.0,0.0,0.0,0.0,0.0,0.0])
+q_goal = np.array([-0.45, 0.3, 0.0, -1.4, 0.0, 2.4,0.0,
+                   0.0,0.0,0.0,0.0,0.0,0.0,0.0])
 
 q_list = []
 qd_list = []

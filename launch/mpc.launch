@@ -10,6 +10,9 @@
   <arg name="joint_command_topic" default="joint_pos_controller/joint_command" />
   <arg name="ee_goal_topic" default="ee_goal" />
   <arg name="filtered_state_topic" default="joint_states/filtered" />
+  <arg name="pointcloud_topic" default="/camera/depth/color/points_filtered" />
+  <arg name="fixed_frame" default="base_link" />
+  <arg name="pointcloud_frame" default="camera_depth_optical_frame" />
 
 
   <node name="goal_manager" type="goal_manager.py" pkg="franka_motion_control" output="screen">
@@ -28,6 +31,9 @@
     <param name="filtered_state_topic" value="$(arg filtered_state_topic)" />
     <param name="mpc_yml_file" value="$(arg mpc_yml_file)" />
     <param name="control_freq" value="$(arg control_freq)" />
+    <param name="pointcloud_topic" value="$(arg pointcloud_topic)" />
+    <param name="fixed_frame" value="$(arg fixed_frame)" />
+    <param name="pointcloud_frame" value="$(arg pointcloud_frame)" />
     <param name="debug" value="$(arg debug)" />
   </node>
 
