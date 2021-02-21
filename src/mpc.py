@@ -126,8 +126,15 @@ class MPCController(object):
     # def user_command_callback(self, msg):
     #     if msg.data == "stop":
     #         self.stop_controller = True
-    #        import tf2_ros
- states
+    #         rospy.loginfo('Stop command received')
+
+    def state_callback(self, msg):
+        self.curr_state_raw = msg
+        
+        # #truncate the velocities
+        # self.curr_state_raw.velocity = np.where(np.abs(self.curr_state_raw.velocity) > 0.05, 
+        #                                         self.curr_state_raw.velocity, 0.0)
+        #filter states
         self.curr_state_raw_dict = self.joint_state_to_dict(self.curr_state_raw)
 
         #filter velocity only
