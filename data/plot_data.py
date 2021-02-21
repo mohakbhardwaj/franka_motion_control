@@ -8,6 +8,9 @@ from differentiable_robot_model.coordinate_transform import matrix_to_quaternion
 import torch
 
 
+# ptcld_data = np.load('pointcloud.npz')
+# print(ptcld_data['data'])
+# input('....')
 data = np.load('mpc_data.npz')
 urdf_path = "/home/mohak/workspace/stochastic_control/content/assets/urdf/franka_description/franka_panda_no_gripper.urdf"
 

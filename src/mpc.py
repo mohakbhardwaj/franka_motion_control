@@ -4,9 +4,9 @@ import numpy as np
 import rospy
 import rospkg
 from geometry_msgs.msg import PoseStamped
+import ros_numpy
 from sensor_msgs.msg import JointState, PointCloud2
 from std_msgs.msg import String
-import tf2_ros
 import torch
 torch.multiprocessing.set_start_method('spawn',force=True)
 
@@ -17,29 +17,18 @@ from stochastic_control.mpc_tools.rollout.arm_reacher_nn_collision import ArmRea
 from stochastic_control.mpc_tools.control import MPPI, StompMPPI
 from stochastic_control.mpc_tools.utils.state_filter import JointStateFilter, RobotStateFilter
 from stochastic_control.mpc_tools.utils.mpc_process_wrapper import ControlProcess
-from stochastic_control.utils.util_file import get_configs_path, get_gym_configs_path, join_path, load_yaml, get_assets_path
+from stochastic_control.utils.util_file import get_configs_path, get_gym_configs_path, get_mpc_configs_path, join_path, load_yaml, get_assets_path
 from cubic_spline import CubicSplineInterPolation
 
+from stochastic_control_conversions import *
 from differentiable_robot_model.coordinate_transform import quaternion_to_matrix, CoordinateTransform
 np.set_printoptions(precision=6)
-# x_des_list = [np.array([0.1643, -0.4172,  0.7743]),
-#               np.array([-0.5441, -0.3595,  0.4602]), np.array([-1.0391, -0.5228,  0.1615]),
-#               np.array([0.1643, -0.4172,  0.7743]),
-#               np.array([0.9243, -0.7062,  0.1615])]
 
 
-# franka_bl_state = np.array([-0.45, 0.68, 0.0, -1.4, 0.0, 2.4,0.0,
-#                             0.0,0.0,0.0,0.0,0.0,0.0,0.0])
-# franka_br_state = np.array([0.45, 0.68, 0.0, -1.4, 0.0, 2.4,0.0,
-#                             0.0,0.0,0.0,0.0,0.0,0.0,0.0])
-# x_des_list = [franka_bl_state, franka_br_state]#, drop_state, home_state]
-
-
-#goal_state_list
 
 class MPCController(object):
     def __init__(self, robot_state_topic, command_topic, goal_topic, pointcloud_topic,
-                filtered_state_topic, mpc_yml_file, control_freq, fixed_frame,  
+                filtered_state_topic, config_file, control_freq, fixed_frame,  
                 pointcloud_frame, debug=False, joint_names=[]):
         #user_command_topic
         self.robot_state_topic = robot_state_topic
@@ -48,7 +37,7 @@ class MPCController(object):
         self.pointcloud_topic = pointcloud_topic
         self.filtered_state_topic = filtered_state_topic
         # self.user_command_topic = user_command_topic
-        self.mpc_yml_file = mpc_yml_file
+        self.config_file = config_file
         self.control_freq = control_freq
         self.fixed_frame = fixed_frame
         self.pointcloud_frame = pointcloud_frame
@@ -109,6 +98,7 @@ class MPCController(object):
         self.tstep = 0
         self.prev_tstep = 0
         self.last_command_tstep = 0
+        self.pointcloud_received = False
         if self.debug:
             self.tsteps = []
             self.robot_q_list_r = []
@@ -135,24 +125,29 @@ class MPCController(object):
         # self.curr_state_raw.velocity = np.where(np.abs(self.curr_state_raw.velocity) > 0.05, 
         #                                         self.curr_state_raw.velocity, 0.0)
         #filter states
-        self.curr_state_raw_dict = self.joint_state_to_dict(self.curr_state_raw)
+        self.curr_state_raw_dict = joint_state_to_dict(self.curr_state_raw)
 
         #filter velocity only
         # self.curr_state_filtered_dict = self.curr_state_raw_dict
         # self.curr_state_filtered_dict['velocity'] = self.robot_state_filter.filter_joint_state({'velocity': self.curr_state_raw_dict['velocity']})['velocity']
                     # filtered_state = robot_state_filter.filter_state(current_state, sim_dt)
         self.curr_state_filtered_dict = self.robot_state_filter.filter_state(self.curr_state_raw_dict, 0.001)
-        self.curr_state_filtered = self.dict_to_joint_state(self.curr_state_filtered_dict)
-        self.filtered_state_pub.publish(self.curr_state_filtered)
+        self.curr_state_filtered = dict_to_joint_state(self.curr_state_filtered_dict)
 
 
     def pointcloud_callback(self, msg):
         self.curr_pointcloud = msg
+        if not self.pointcloud_received:
+            self.pointcloud_received = True
+            data = pointcloud2_to_np(self.curr_pointcloud)
+            np.savez('/home/mohak/catkin_ws/src/franka_motion_control/data/pointcloud.npz', 'wb',
+                    data=data)
+            self.controller.rollout_fn.voxel_collision_cost.coll.set_scene(data, np.zeros_like(data))
 
     def goal_callback(self, msg):
         #Update mpc goal
         self.curr_ee_goal = msg
-        self.curr_ee_goal_pos, self.curr_ee_goal_quat = self.pose_stamped_to_np(msg)
+        self.curr_ee_goal_pos, self.curr_ee_goal_quat = pose_stamped_to_np(msg)
         self.control_process.update_goal(goal_ee_pos = self.curr_ee_goal_pos,
                                          goal_ee_quat = self.curr_ee_goal_quat)
         self.controller.rollout_fn.update_goal(goal_ee_pos = self.curr_ee_goal_pos,
@@ -244,19 +239,12 @@ class MPCController(object):
 
         while not rospy.is_shutdown():
         
-            if self.curr_state_raw is not None and self.curr_ee_goal is not None:
-
-
-
-                # self.curr_state_filtered_dict = self.robot_state_filter.filter_state(self.curr_state_raw_dict, self.sim_dt)
+            if self.curr_state_raw is not None and self.curr_ee_goal is not None and self.curr_pointcloud is not None:
                 curr_state_np = np.hstack((self.curr_state_filtered_dict['position'], 
                                            self.curr_state_filtered_dict['velocity'], 
                                            self.curr_state_filtered_dict['acceleration']))
                 
-                # curr_state_np = np.concatenate((self.curr_state_filtered_dict['position'], 
-                #                                 self.curr_state_filtered_dict['velocity'], 
-                #                                 self.prev_mpc_qdd_des), axis=1)
-                # curr_state_tensor = torch.as_tensor(curr_state_np)
+
                 # curr_state_tensor = torch.as_tensor(curr_state_np, **self.mpc_tensor_dtype) #.unsqueeze(0)
 
                 # next_command, command_tstep, val, info = mpc_control.get_command(t_step, curr_state, sim_dt)
@@ -329,10 +317,9 @@ class MPCController(object):
                 self.curr_mpc_command.velocity = command['velocity']
                 self.curr_mpc_command.effort = np.zeros(7) #command['acceleration'] #What is the third key here??
                 
-                # print('mpc acc', act)
-                # print('curr position', self.curr_state_filtered.position)
-                # print('integrated position', self.curr_mpc_command.position)
-                self.command_pub.publish(self.curr_mpc_command)
+                self.command_pub.publish(self.curr_mpc_command) #publish mpc command
+                self.filtered_state_pub.publish(self.curr_state_filtered) #publish filtered state
+
                 rospy.loginfo('[MPC]: Command published')
 
                 if self.tstep == 0:
@@ -340,9 +327,7 @@ class MPCController(object):
 
                 self.prev_tstep = self.tstep
                 self.tstep = rospy.get_time() - self.start_t
-                
-                # self.sim_dt = self.tstep - self.prev_tstep
-                
+                                
                 # self.prev_mpc_qdd_des = mpc_qdd_des
                 
                 # ee_error,_ = self.controller.rollout_fn.current_cost(curr_state_tensor.unsqueeze(0))
@@ -350,13 +335,16 @@ class MPCController(object):
                 # rospy.loginfo(["{:.3f}".format(x) for x in ee_error]) #, "{:.3f}".format(mpc_control.mpc_dt)
                 
                 if self.debug:
-                    self.log_data(mpc_next_command, [0., 0., 0.])
+                    self.log_data(mpc_next_command)
 
             elif self.curr_state_raw is None:
                 rospy.loginfo('[MPC]: Waiting for state')
             
             elif self.curr_ee_goal is None:
-                rospy.loginfo('[MPC]: Waiting for ee goal`')
+                rospy.loginfo('[MPC]: Waiting for ee goal')
+            
+            elif self.curr_pointcloud is None:
+                rospy.loginfo('[MPC]: Waiting for pointcloud')
 
             self.rate.sleep()
 
@@ -364,7 +352,12 @@ class MPCController(object):
     
 
     def initialize_mpc_controller(self):
+        
+        with open(self.config_file) as file:
+            self.robot_params = yaml.load(file, Loader=yaml.FullLoader)
 
+
+        self.mpc_yml_file = join_path(get_mpc_configs_path(), self.robot_params['mpc_yml'])
         with open(self.mpc_yml_file) as file:
             self.exp_params = yaml.load(file, Loader=yaml.FullLoader)
 
@@ -373,13 +366,22 @@ class MPCController(object):
             float_dtype = torch.bfloat16
         use_cuda = torch.cuda.is_available() if self.exp_params['use_cuda'] else False
         device = torch.device('cuda', self.exp_params['cuda_device_num']) if use_cuda else torch.device('cpu')
-
-        
         self.mpc_tensor_dtype = {'device':device, 'dtype':float_dtype}
+
+
+        self.exp_params['robot_params'] = self.robot_params
         rollout_fn = ArmReacherCollisionNN(self.exp_params, device=device, float_dtype=float_dtype, world_params=None)
 
-        mppi_params = self.exp_params['mppi']
+        #Initialize world for collision cost
+        temp_trans = torch.ones(3, device=device, dtype=float_dtype)
+        temp_rot = torch.ones(3,3, device=device, dtype=float_dtype)
+        robot_c_trans = torch.tensor([1.114, -0.402, 0.802], device=device, dtype=float_dtype)
+        robot_c_quat = torch.tensor([0.513, 0.698, -0.409, -0.288], device=device, dtype=float_dtype)
+        robot_c_rot = quaternion_to_matrix(robot_c_quat)
+        rollout_fn.voxel_collision_cost.coll.set_world_transform(temp_trans, temp_rot, robot_c_trans, robot_c_rot)
+        # robot_table_trans, robot_R_table, robot_c_trans, robot_R_c
 
+        mppi_params = self.exp_params['mppi']
         dynamics_model = rollout_fn.dynamics_model
         if(self.exp_params['control_space'] == 'pos'):
             self.exp_params['model']['max_acc'] = 3.0
@@ -401,8 +403,14 @@ class MPCController(object):
         self.controller = MPPI(**mppi_params)
         self.control_process = ControlProcess(self.controller, control_space=self.exp_params['control_space'], control_dt=self.sim_dt)
         self.controller.rollout_fn.dynamics_model.robot_model.load_lxml_objects()
+
+
+
+
+
+
     
-    def log_data(self, qdd_des, ee_error):
+    def log_data(self, qdd_des):
         self.robot_q_list_r.append(self.curr_state_raw.position)
         self.robot_qd_list_r.append(self.curr_state_raw.velocity)
         self.robot_qd_des_list_r.append(self.curr_state_raw.effort)
@@ -441,33 +449,42 @@ class MPCController(object):
                     tsteps = self.tsteps)
             print('Logs dumped')
 
-    def joint_state_to_dict(self, msg):
-        return {'position': np.array(msg.position), 
-                'velocity': np.array(msg.velocity)} 
-                #'acceleration': np.array(msg.effort) 
+    # def joint_state_to_dict(self, msg):
+    #     return {'position': np.array(msg.position), 
+    #             'velocity': np.array(msg.velocity)} 
+    #             #'acceleration': np.array(msg.effort) 
     
-    def dict_to_joint_state(self, dict):
-        msg = JointState()
-        msg.position = dict['position']
-        msg.velocity = dict['velocity']
-        # msg.effort = dict['acceleration'] 
-        return msg
+    # def dict_to_joint_state(self, dict):
+    #     msg = JointState()
+    #     msg.position = dict['position']
+    #     msg.velocity = dict['velocity']
+    #     # msg.effort = dict['acceleration'] 
+    #     return msg
     
-    def pose_stamped_to_np(self, msg):
-        pos = np.array([msg.pose.position.x,
-                        msg.pose.position.y,
-                        msg.pose.position.z])
-        quat = np.array([msg.pose.orientation.x,
-                         msg.pose.orientation.y,
-                         msg.pose.orientation.z,
-                         msg.pose.orientation.w])
-        return pos, quat
+    # def pose_stamped_to_np(self, msg):
+    #     pos = np.array([msg.pose.position.x,
+    #                     msg.pose.position.y,
+    #                     msg.pose.position.z])
+    #     quat = np.array([msg.pose.orientation.x,
+    #                      msg.pose.orientation.y,
+    #                      msg.pose.orientation.z,
+    #                      msg.pose.orientation.w])
+    #     return pos, quat
+    
+    # def pointcloud2_to_np(self, msg):
+    #     pc = ros_numpy.numpify(msg)
+    #     points=np.zeros((pc.shape[0],3))
+    #     points[:,0]=pc['x']
+    #     points[:,1]=pc['y']
+    #     points[:,2]=pc['z']
+    #     return np.array(points)
+
 
 if __name__ == '__main__':
     rospy.init_node("mpc_controller", anonymous=True)
 
-    # mpc_yml_file = join_path(mpc_configs_path(), robot_params['mpc_yml'])
-    mpc_yml_file = os.path.abspath(rospy.get_param('~mpc_yml_file'))
+    # config_file = join_path(mpc_configs_path(), robot_params['mpc_yml'])
+    config_file = os.path.abspath(rospy.get_param('~config_file'))
     joint_states_topic = rospy.get_param('~joint_states_topic')
     joint_command_topic = rospy.get_param('~joint_command_topic')
     ee_goal_topic = rospy.get_param('~ee_goal_topic')
@@ -484,17 +501,10 @@ if __name__ == '__main__':
                                    ee_goal_topic,
                                    pointcloud_topic,
                                    filtered_state_topic,
-                                   mpc_yml_file,
+                                   config_file,
                                    control_freq,
                                    debug,
                                    joint_names)
-    #                                   x_des_list,
 
-    # while not rospy.is_shutdown():
-    #     rospy.spin()
-    # rospy.loginfo("""WARNING: This example will move the robot! \n
-    #               Please make sure to have the user stop button at hand! \n
-    #               Press Enter to continue... \n""")
-    # input()
     rospy.loginfo('[MPC]: Initiating Control Loop')
     mpc_controller.control_loop_linear()

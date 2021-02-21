@@ -2,7 +2,7 @@
 
 <launch>
   <!-- <arg name="mpc_yml_file" default="$(find franka_motion_control)/config/franka_reacher.yml" /> -->
-  <arg name="mpc_yml_file" default="/home/mohak/workspace/stochastic_control/content/configs/mpc_tools/franka_reacher.yml" />
+  <arg name="config_file" default="/home/mohak/workspace/stochastic_control/content/configs/gym_tools/franka.yml" />
   <arg name="control_freq" default="100" />
   <arg name="goal_pub_freq" default="1" />
   <arg name="debug" default="False" />
@@ -29,7 +29,7 @@
     <param name="joint_command_topic" value="$(arg joint_command_topic)" />
     <param name="ee_goal_topic" value="$(arg ee_goal_topic)" />
     <param name="filtered_state_topic" value="$(arg filtered_state_topic)" />
-    <param name="mpc_yml_file" value="$(arg mpc_yml_file)" />
+    <param name="config_file" value="$(arg config_file)" />
     <param name="control_freq" value="$(arg control_freq)" />
     <param name="pointcloud_topic" value="$(arg pointcloud_topic)" />
     <param name="fixed_frame" value="$(arg fixed_frame)" />
