@@ -19,11 +19,8 @@
 #include <sensor_msgs/JointState.h>
 
 
-// #include <std_msgs/Bool.h> 
-// #include <std_msgs/Float32.h>
 
 
-// #include <example_srv/simple_bool_service_message.h> // this is a pre-defined service message, contained in shared "example_srv" package
 
 class JointPositionController
 {
@@ -42,7 +39,11 @@ public:
 
 private:
     using Vector7d = Eigen::Matrix<double, 7, 1, Eigen::ColMajor>;
+    using Mat7d = Eigen::Matrix<double, 7, 7, Eigen::ColMajor>;
     using Vector7i = Eigen::Matrix<int, 7, 1, Eigen::ColMajor>;
+
+    using Vector7f = Eigen::Matrix<float, 7, 1, Eigen::ColMajor>;
+    using Mat7f = Eigen::Matrix<float, 7, 7, Eigen::ColMajor>;
     
     std::string robot_ip_;
     franka::Robot robot_;
@@ -63,13 +64,19 @@ private:
     sensor_msgs::JointState curr_joint_command_;
     // franka::RobotState curr_robot_state_;
 
-    Vector7d curr_q_goal_;
-    Vector7d curr_qd_goal_;
+    Vector7d curr_q_des_;
+    Vector7d curr_dq_des_;
+    Vector7d curr_ddq_des_;
     Vector7d curr_q_;
+    Vector7d curr_dq_;
     Vector7d delta_q_;
+
+    Vector7d q_des_cmd_, dq_des_cmd_, ddq_des_cmd_;
+
+
     double time_ = 0.0;
     double dq_max_;
-    bool goal_pub_started_;
+    bool command_pub_started_;
 
     double prev_time_ = 0.0;
 
@@ -77,19 +84,20 @@ private:
 
 
 
-    // Vector7d dq_max_ = (Vector7d() << 2.0, 2.0, 2.0, 2.0, 2.5, 2.5, 2.5).finished();
-    // Vector7d ddq_max_start_ = (Vector7d() << 5, 5, 5, 5, 5, 5, 5).finished();
-    // Vector7d ddq_max_goal_ = (Vector7d() << 5, 5, 5, 5, 5, 5, 5).finished();
+    // Vector7f dq_max_ = (Vector7f() << 2.0, 2.0, 2.0, 2.0, 2.5, 2.5, 2.5).finished();
+    // Vector7f ddq_max_start_ = (Vector7f() << 5, 5, 5, 5, 5, 5, 5).finished();
+    // Vector7f ddq_max_goal_ = (Vector7f() << 5, 5, 5, 5, 5, 5, 5).finished();
    
-    // Vector7d P_ = (Vector7d() << 6.0, 6.0, 6.0, 6.0, 2.5, 4.0, 4.0).finished();
+    // Vector7f P_ = (Vector7f() << 6.0, 6.0, 6.0, 6.0, 2.5, 4.0, 4.0).finished();
 
-    // Vector7d P_ = (Vector7d() << 7.0, 5.0, 5.0, 7.0, 5.0, 6.0, 7.0).finished();
-    // Vector7d D_ = (Vector7d() << 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.5).finished();
+    // Vector7f P_ = (Vector7f() << 7.0, 5.0, 5.0, 7.0, 5.0, 6.0, 7.0).finished();
+    // Vector7f D_ = (Vector7f() << 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.5).finished();
+    Vector7d Pf_ = (Vector7d() << 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0).finished();
     
 
     // Vector7d P_ = (Vector7d() << 210.0, 200.0, 5.0, 7.0, 5.0, 6.0, 7.0).finished();
-    Vector7d P_ = (Vector7d() << 100.0, 100.0, 100.0, 100.0, 50.0, 50.0, 50.0).finished();    
-    Vector7d D_ = (Vector7d() << 12.0, 12.0, 12.0, 12.0, 2.0, 2.0, 1.0).finished();
+    Vector7d P_ = (Vector7d() << 500.0,500.0, 500.0, 500.0, 100.0, 100.0, 100.0).finished();    
+    Vector7d D_ = (Vector7d() << 25.0, 25.0, 25.0, 25.0, 2.0, 2.0, 2.0).finished();
 
     // member methods as well:
     void initializeSubscribers(); // we will define some helper methods to encapsulate the gory details of initializing subscribers, publishers and services

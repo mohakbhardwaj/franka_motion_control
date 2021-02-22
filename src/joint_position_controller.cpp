@@ -19,14 +19,17 @@ JointPositionController::JointPositionController(ros::NodeHandle* nodehandle, st
     // initializeServices();
     // robot_ip_ = robot_ip;
     curr_q_.setZero();
-    curr_q_goal_.setZero();
+    curr_dq_.setZero();
+    curr_q_des_.setZero();
+    curr_dq_des_.setZero();
+    curr_ddq_des_.setZero();
     delta_q_.setZero();
     
     // robot_ =
     // model_ = robot_.loadModel();
     setDefaultBehavior(robot_);
 
-    goal_pub_started_ = false;
+    command_pub_started_ = false;
     nh_.getParam("joint_states_topic", joint_states_topic_);
     nh_.getParam("joint_command_topic", joint_command_topic_);
     nh_.getParam("robot_joint_command_topic", robot_joint_command_topic_);
@@ -86,20 +89,21 @@ void JointPositionController::initializePublishers(){
 
 void JointPositionController::goalCallback(const sensor_msgs::JointState& msg) {
     curr_goal_state_ = msg;
-    curr_q_goal_ = Eigen::VectorXd::Map(&curr_goal_state_.position[0], 7);
-    curr_qd_goal_ = Eigen::VectorXd::Map(&curr_goal_state_.velocity[0], 7);
-    goal_pub_started_ = true;
+    curr_q_des_ = Eigen::VectorXd::Map(&curr_goal_state_.position[0], 7);
+    curr_dq_des_ = Eigen::VectorXd::Map(&curr_goal_state_.velocity[0], 7);
+    curr_ddq_des_ = Eigen::VectorXd::Map(&curr_goal_state_.effort[0], 7);
+    command_pub_started_ = true;
 }
 
 
 void JointPositionController::setJointPositionGoal(std::array<double, 7>& q_goal){
-    curr_q_goal_ = Vector7d(q_goal.data());
+    curr_q_des_ = Vector7d(q_goal.data());
 }
 
 bool JointPositionController::publishRobotState(const franka::RobotState& robot_state){
     curr_robot_state_.header.stamp = ros::Time::now();
     for (size_t i = 0; i < curr_robot_state_.position.size(); i++) {
-        curr_robot_state_.position[i] = robot_state.q[i]; //robot_state.q_d[i];
+        curr_robot_state_.position[i] = robot_state.q[i];
         curr_robot_state_.velocity[i] = robot_state.dq[i];
         curr_robot_state_.effort[i] = robot_state.dq_d[i];
     }
@@ -131,8 +135,8 @@ franka::JointPositions JointPositionController::motion_generator_callback(const 
     Vector7d q_desired;
     // q_desired = curr_q_;
 
-    if(goal_pub_started_){
-        q_desired =  curr_q_goal_; 
+    if(command_pub_started_){
+        q_desired =  curr_q_des_; 
     }
     else{
         q_desired = curr_q_;
@@ -183,8 +187,8 @@ franka::JointPositions JointPositionController::motion_generator_callback_integr
 
     curr_q_ = Vector7d(robot_state.q_d.data());
 
-    if(goal_pub_started_){
-        delta_q_ = (curr_q_goal_ - curr_q_); /// dt;
+    if(command_pub_started_){
+        delta_q_ = (curr_q_des_ - curr_q_); /// dt;
 
         double max_delta_q = delta_q_.lpNorm<Eigen::Infinity>();
         double dq_max_dt = dq_max_ * dt;
@@ -250,35 +254,65 @@ franka::Torques JointPositionController::torque_controller_callback(const franka
     time_ += period.toSec();
     publishRobotState(robot_state);
 
-    std::array<double, 7> coriolis = model_.coriolis(robot_state); // Coriolis torque for current state
-    std::array<double, 7> tau_d_calculated, tau_d_rate_limited;
-    
-    if(goal_pub_started_){
-        for (size_t i = 0; i < 7; i++) {
-            tau_d_calculated[i] =  
-                P_[i] * (curr_q_goal_[i] - robot_state.q[i]) + D_[i] * (curr_qd_goal_[i] - robot_state.dq[i]) + coriolis[i];
-        }
+    curr_q_ = Vector7d(robot_state.q.data());
+    curr_dq_ = Vector7d(robot_state.dq.data());
 
+
+    if(time_ == 0.0){
+        //Initial state to hold while waiting for command
+        q_des_cmd_ = curr_q_;
+        dq_des_cmd_ = curr_dq_;
+        ddq_des_cmd_.setZero();
+    }
+
+
+    Vector7d tau_d_error, tau_d_coriolis, tau_d_inertia, tau_d_calculated;
+
+    Mat7d inertia_matrix = Mat7d(model_.mass(robot_state).data()); 
+    tau_d_coriolis = Vector7d(model_.coriolis(robot_state).data()); //coriolis torque from current state
+
+    if(command_pub_started_){
+        
+        q_des_cmd_ = curr_q_des_;
+        dq_des_cmd_ = curr_dq_des_;
+        ddq_des_cmd_ = curr_ddq_des_;
+        // Torque from PD control
+        // for (size_t i = 0; i < 7; i++) {
+        //     tau_d_error[i] =  
+        //         P_[i] * (curr_q_des_[i] - robot_state.q[i]) + D_[i] * (curr_dq_des_[i] - robot_state.dq[i]); // + coriolis[i];
+        // }
+         
     }
     else{
         ROS_INFO("Waiting for goal...");
-        tau_d_calculated = coriolis;
     }
+
+    // std::cout << "tau_inertia" << tau_d_inertia;
+    // std::cout << "tau_error" << tau_d_error;
+    // std::cout << "tau_coriolis" << tau_d_coriolis;
+
+    tau_d_inertia = inertia_matrix * ddq_des_cmd_;
+    tau_d_inertia = Pf_.cwiseProduct(tau_d_inertia);
+
+    tau_d_error = P_.cwiseProduct(q_des_cmd_ - curr_q_) + D_.cwiseProduct(dq_des_cmd_ - curr_dq_);
+    tau_d_calculated =  tau_d_inertia + tau_d_error + tau_d_coriolis;
+
     std::cout << "calculated torque: ";
     for(size_t i = 0; i < 7; ++i){
         std::cout << tau_d_calculated[i] << " ";
-        
     }
     std::cout << "\n";
+
     //Apply rate limiting (applied by default also)
-    tau_d_rate_limited =
-            franka::limitRate(franka::kMaxTorqueRate, tau_d_calculated, robot_state.tau_J_d);
+    std::array<double, 7> tau_d_calculated_arr;
+    Eigen::VectorXd::Map(&tau_d_calculated_arr[0], 7) = tau_d_calculated;
+    std::array<double, 7> tau_d_rate_limited =
+            franka::limitRate(franka::kMaxTorqueRate, tau_d_calculated_arr, robot_state.tau_J_d);
     
     // if(!ros::ok()){
     //     ROS_INFO("Ros shutdown");
     // }
 
-    // tau_d_rate_limited = {{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0}};
     ros::spinOnce();
     return tau_d_rate_limited;
 }
