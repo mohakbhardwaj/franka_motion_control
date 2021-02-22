@@ -74,7 +74,7 @@ class MPCController(object):
         #                                               filter_keys=self.vel_filter_coeff.keys())
 
 
-        self.command_filter_coeff = {'position': 0.2, 'velocity': 0.01, 'acceleration': 1.0}
+        self.command_filter_coeff = {'position': 0.15, 'velocity': 0.01, 'acceleration': 1.0}
         self.robot_command_filter = JointStateFilter(filter_coeff=self.command_filter_coeff, 
                                                      dt=self.exp_params['control_dt'],
                                                      filter_keys=self.command_filter_coeff.keys())
@@ -252,7 +252,7 @@ class MPCController(object):
             if self.curr_state_raw is not None and self.curr_ee_goal is not None: # and self.curr_pointcloud is not None:
 
                 if self.state_received_flag:  
-                    _ = self.robot_state_filter.predict_state(0.01)   
+                    # _ = self.robot_state_filter.predict_state(0.01)   
                     self.curr_state_filtered_dict = self.robot_state_filter.filter_state(self.curr_state_raw_dict, 0.01) #filters position  
                     # if self.prev_state_filtered_dict is not None:
                         # self.curr_state_filtered_dict['velocity'] = (self.curr_state_filtered_dict['position'] - self.prev_state_filtered_dict['position']) / 0.01           
