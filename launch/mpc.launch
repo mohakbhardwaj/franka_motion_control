@@ -9,6 +9,7 @@
   <arg name="joint_states_topic" default="joint_pos_controller/joint_states" />
   <arg name="joint_command_topic" default="joint_pos_controller/joint_command" />
   <arg name="ee_goal_topic" default="ee_goal" />
+  <arg name="ee_pose_topic" default="ee_pose" />
   <arg name="filtered_state_topic" default="joint_states/filtered" />
   <arg name="pointcloud_topic" default="/camera/depth/color/points_filtered" />
   <arg name="fixed_frame" default="base_link" />
@@ -18,6 +19,7 @@
   <node name="goal_manager" type="goal_manager.py" pkg="franka_motion_control" output="screen">
     <param name="joint_states_topic" value="$(arg joint_states_topic)" />
     <param name="ee_goal_topic" value="$(arg ee_goal_topic)" />
+    <param name="ee_pose_topic" value="$(arg ee_pose_topic)" />
     <param name="goal_pub_freq" value="$(arg goal_pub_freq)" />
     <param name="urdf_path" value="/home/mohak/catkin_ws_py2/src/franka_panda_description/robots/panda_arm.urdf" />
     <param name="urdf_path" value="/home/mohak/workspace/stochastic_control/content/assets/urdf/franka_description/franka_panda_no_gripper.urdf" />

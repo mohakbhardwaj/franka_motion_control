@@ -9,33 +9,42 @@ M_PI_2 = np.pi / 2.0
 M_PI_4 = np.pi / 4.0
 M_PI_8 = np.pi/8.0
 
-joint_to_tune = 4
+joint_to_tune = 2
 increment = 0.1
 # q_goal = np.array([0, -M_PI_4, 0, -3 * M_PI_4, 0, M_PI_2, M_PI_4,\
 #                   0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
 
 #Home
-# q_goal = np.array([0, -M_PI_4, 0, -3 * M_PI_4, 0, M_PI_2, M_PI_4,\
-#                   0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+q_goal = np.array([0, -M_PI_4, 0, -3 * M_PI_4, 0, M_PI_2, M_PI_4,\
+                  0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
 
-# q_goal[joint_to_tune] += increment
+q_goal[joint_to_tune] += increment
 
 #Don't send here
 # q_goal = np.array([-0.45, 0.68, 0.0, -1.4, 0.0, 2.4,0.0,
 #                             0.0,0.0,0.0,0.0,0.0,0.0,0.0])
 
 #Send here
-q_goal = np.array([-0.45, 0.3, 0.0, -1.4, 0.0, 2.4,0.0,
-                   0.0,0.0,0.0,0.0,0.0,0.0,0.0])
+# q_goal = np.array([-0.45, 0.3, 0.0, -1.4, 0.0, 2.4,0.0,
+#                    0.0,0.0,0.0,0.0,0.0,0.0,0.0])
 
 q_list = []
 qd_list = []
+tstep_list = []
 
 colors = ['#1b9e77', '#d95f02', '#7570b3', '#e7298a', '#66a61e', '#e6ab02', '#a6761d']
+tstep = 0
+start_t = 0
 
 def state_sub(msg):
+    global tstep, start_t
     q_list.append(msg.position)
     qd_list.append(msg.velocity)
+    if tstep == 0:
+        start_t = rospy.get_time()
+    tstep = rospy.get_time() - start_t
+    tstep_list.append(tstep)
+
 
 def goal_pub():
     goal_state = JointState()
@@ -50,18 +59,18 @@ def goal_pub():
     plot()
 
 def plot():
-    global q_list, qd_list, joint_to_tune
+    global q_list, qd_list, joint_to_tune, tstep_list
     fig, ax = plt.subplots(2,1)
-    num_pts = len(q_list)
+    num_pts = len(tstep_list)
     q_list = np.array(q_list)
     qd_list = np.array(qd_list)
     if num_pts > 1:
         # for i in range(7):
         i = joint_to_tune
-        ax[0].plot(range(num_pts), [q_goal[i]]*num_pts, linestyle='dashed', color=colors[i], label='joint_{}_des'.format(i))
-        ax[0].plot(range(num_pts), q_list[:,i], color=colors[i])
-        ax[1].plot(range(num_pts), [q_goal[i+7]]*num_pts, linestyle='dashed', color=colors[i])
-        ax[1].plot(range(num_pts), qd_list[:,i], color=colors[i])
+        ax[0].plot(tstep_list, [q_goal[i]]*num_pts, linestyle='dashed', color=colors[i], label='joint_{}_des'.format(i))
+        ax[0].plot(tstep_list, q_list[:,i], color=colors[i])
+        ax[1].plot(tstep_list, [q_goal[i+7]]*num_pts, linestyle='dashed', color=colors[i])
+        ax[1].plot(tstep_list, qd_list[:,i], color=colors[i])
         ax[0].set_title('Joint Position')
         ax[1].set_title('Joint Velocity')
         ax[0].legend()

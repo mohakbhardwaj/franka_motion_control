@@ -26,6 +26,12 @@ def pose_stamped_to_np(msg):
                         msg.pose.orientation.w])
     return pos, quat
 
+# def np_to_pose_stamped(pos, quat, stamp):
+#     msg = PoseStamped()
+#     msg.header = Header()
+#     msg.header
+#     msg.po
+
 def pointcloud2_to_np(msg):
     pc = ros_numpy.numpify(msg)
     points=np.zeros((pc.shape[0],3))

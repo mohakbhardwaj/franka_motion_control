@@ -17,25 +17,22 @@ import torch
 # franka_bl_state = np.array([-0.45, 0.68, 0.0, -1.4, 0.0, 2.4,0.0,
 #                             0.0,0.0,0.0,0.0,0.0,0.0,0.0])
 
-franka_bl_state = np.array([-0.45, 0.3, 0.0, -1.4, 0.0, 2.4,0.0,
+franka_bl_state = np.array([-0.45, 0.4, 0.0, -1.4, 0.0, 2.4,0.0,
                             0.0,0.0,0.0,0.0,0.0,0.0,0.0])
-franka_br_state = np.array([0.45, 0.68, 0.0, -1.4, 0.0, 2.4,0.0,
+franka_br_state = np.array([0.45, 0.4, 0.0, -1.4, 0.0, 2.4,0.0,
                             0.0,0.0,0.0,0.0,0.0,0.0,0.0])
 q_des_list = [franka_bl_state, franka_br_state]#, drop_state, home_state]
 
 
 
 class GoalManager(object):
-    def __init__(self, sub_topic, pub_topic, urdf_path, publish_freq=10):
-        self.sub_topic = sub_topic
-        self.pub_topic = pub_topic
+    def __init__(self, state_sub_topic, goal_pub_topic, ee_pose_pub_topic, urdf_path, publish_freq=10):
+        self.state_sub_topic = state_sub_topic
+        self.goal_pub_topic = goal_pub_topic
+        self.ee_pose_pub_topic = ee_pose_pub_topic
         self.urdf_path = urdf_path
         self.publish_freq = publish_freq
     
-        self.pub = rospy.Publisher(self.pub_topic, PoseStamped, queue_size=1, latch=False)
-        self.state_sub = rospy.Subscriber(self.sub_topic, JointState, self.state_callback)
-        # self.state_sub = rospy.Subscriberrobot_state       
-        self.rate = rospy.Rate(self.publish_freq)
         self.tensor_args = {'device':"cpu", 'dtype':torch.float32}
 
         self.robot_model = DifferentiableRobotModel(self.urdf_path, None, 
@@ -50,6 +47,14 @@ class GoalManager(object):
                                              self.goal_state[:,self.n_dofs:self.n_dofs*2], link_name='ee_link')
         self.goal_ee_quat = matrix_to_quaternion(self.goal_ee_rot)
 
+
+
+        self.goal_pub = rospy.Publisher(self.goal_pub_topic, PoseStamped, queue_size=1, latch=False)
+        self.ee_pub = rospy.Publisher(self.ee_pose_pub_topic, PoseStamped, queue_size=1, latch=False)
+        self.state_sub = rospy.Subscriber(self.state_sub_topic, JointState, self.state_callback)
+
+        self.rate = rospy.Rate(self.publish_freq)
+
         #TBD: Change to None after state machine node has been written
         self.curr_goal = PoseStamped()
         self.curr_goal.header = std_msgs.msg.Header()
@@ -61,6 +66,12 @@ class GoalManager(object):
         self.curr_goal.pose.orientation.y = self.goal_ee_quat[0][1]
         self.curr_goal.pose.orientation.z = self.goal_ee_quat[0][2]
         self.curr_goal.pose.orientation.w = self.goal_ee_quat[0][3]
+    
+        self.curr_robot_ee_pose = PoseStamped()
+        self.curr_goal.header = std_msgs.msg.Header()
+
+        self.curr_robot_ee_pos = None
+        self.curr_robot_ee_quat = None
 
         # create an interactive marker server on the topic namespace simple_marker
         self.server = InteractiveMarkerServer("goal_marker")
@@ -150,14 +161,31 @@ class GoalManager(object):
 
     def state_callback(self, msg):
         self.curr_robot_state = msg
-        pass
+        q = torch.as_tensor(self.curr_robot_state.position, **self.tensor_args).unsqueeze(0)
+        qd = torch.as_tensor(self.curr_robot_state.velocity, **self.tensor_args).unsqueeze(0)
+
+
+        self.curr_robot_ee_pos, curr_robot_ee_rot = self.robot_model.compute_forward_kinematics(q, qd, link_name='ee_link')
+        self.curr_robot_ee_quat = matrix_to_quaternion(curr_robot_ee_rot)
+        #convert to pose stamped message
+        self.curr_robot_ee_pose.header.stamp = msg.header.stamp
+        self.curr_robot_ee_pose.pose.position.x = self.curr_robot_ee_pos[0][0] 
+        self.curr_robot_ee_pose.pose.position.y = self.curr_robot_ee_pos[0][1] 
+        self.curr_robot_ee_pose.pose.position.z = self.curr_robot_ee_pos[0][2] 
+
+        self.curr_robot_ee_pose.pose.orientation.x = self.curr_robot_ee_quat[0][0] 
+        self.curr_robot_ee_pose.pose.orientation.y = self.curr_robot_ee_quat[0][1] 
+        self.curr_robot_ee_pose.pose.orientation.z = self.curr_robot_ee_quat[0][2] 
+        self.curr_robot_ee_pose.pose.orientation.w = self.curr_robot_ee_quat[0][3] 
+        self.ee_pub.publish(self.curr_robot_ee_pose)
     
     def publish_goal_loop(self):
         while not rospy.is_shutdown():
         
             if self.curr_goal is not None:
                 # rospy.loginfo('[Goal Manager] Curr Goal:', self.curr_goal)
-                self.pub.publish(self.curr_goal)                
+                self.curr_goal.header.stamp = rospy.Time.now()
+                self.goal_pub.publish(self.curr_goal)                
                 self.rate.sleep()
             else:
                 # rospy.loginfo('Waiting for goal...')
@@ -169,11 +197,13 @@ if __name__ == '__main__':
     # mpc_yml_file = join_path(mpc_configs_path(), robot_params['mpc_yml'])
     joint_states_topic = rospy.get_param('~joint_states_topic')
     ee_goal_topic = rospy.get_param('~ee_goal_topic')
+    ee_pose_topic = rospy.get_param('~ee_pose_topic')
     publish_freq = rospy.get_param('~goal_pub_freq')
     urdf_path = rospy.get_param('~urdf_path')
  
     goal_manager = GoalManager(joint_states_topic,
                                ee_goal_topic,
+                               ee_pose_topic,
                                urdf_path,
                                publish_freq)
     

@@ -30,7 +30,7 @@ model:
   dt_traj_params:
     base_dt: 0.01
     base_ratio: 0.8
-    max_dt: 0.2
+    max_dt: 0.1
   #control_freq: 10
   #sim_freq: 100
   ee_link_name: "ee_link"
