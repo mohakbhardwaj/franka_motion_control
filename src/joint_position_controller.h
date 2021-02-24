@@ -96,8 +96,27 @@ private:
     
 
     // Vector7d P_ = (Vector7d() << 210.0, 200.0, 5.0, 7.0, 5.0, 6.0, 7.0).finished();
-    Vector7d P_ = (Vector7d() << 500.0,500.0, 500.0, 500.0, 100.0, 100.0, 100.0).finished();    
-    Vector7d D_ = (Vector7d() << 25.0, 25.0, 25.0, 25.0, 2.0, 2.0, 2.0).finished();
+    // Vector7d P_ = (Vector7d() << 100.0, 100.0, 100.0, 100.0, 50.0, 50.0, 50.0).finished();    
+    // Vector7d D_ = (Vector7d() << 12.0, 12.0, 12.0, 12.0, 2.0, 2.0, 1.0).finished();
+    
+    //star
+    // Vector7d P_ = (Vector7d() << 90.0, 90.0, 90.0, 90.0, 50.0, 50.0, 50.0).finished();    
+    // Vector7d D_ = (Vector7d() << 16.0, 16.0, 16.0, 16.0, 3.0, 3.0, 3.0).finished();
+
+    Vector7d P_ = (Vector7d() << 80.0, 80.0, 80.0, 80.0, 50.0, 50.0, 50.0).finished();    
+    Vector7d D_ = (Vector7d() << 16.0, 16.0, 16.0, 16.0, 3.0, 3.0, 3.0).finished();
+
+
+    // Vector7d P_ = (Vector7d() << 70.0, 70.0, 70.0, 70.0, 40.0, 40.0, 40.0).finished();    
+    // Vector7d D_ = (Vector7d() << 16.0, 16.0, 16.0, 16.0, 3.0, 3.0, 3.0).finished();
+
+
+    // Vector7d P_ = (Vector7d() << 300.0, 300.0, 300.0, 300.0, 100.0, 100.0, 100.0).finished();    
+    // Vector7d D_ = (Vector7d() << 20.0, 20.0, 20.0, 25.0, 2.0, 2.0, 2.0).finished();
+
+    // Vector7d P_ = (Vector7d() << 300.0, 300.0, 300.0, 300.0, 100.0, 100.0, 100.0).finished();    
+    // Vector7d D_ = (Vector7d() << 20.0, 20.0, 20.0, 25.0, 2.0, 2.0, 2.0).finished();
+
 
     // member methods as well:
     void initializeSubscribers(); // we will define some helper methods to encapsulate the gory details of initializing subscribers, publishers and services
