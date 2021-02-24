@@ -17,19 +17,21 @@ import torch
 # franka_bl_state = np.array([-0.45, 0.68, 0.0, -1.4, 0.0, 2.4,0.0,
 #                             0.0,0.0,0.0,0.0,0.0,0.0,0.0])
 
-franka_bl_state = np.array([-0.45, 0.4, 0.0, -1.4, 0.0, 2.4,0.0,
-                            0.0,0.0,0.0,0.0,0.0,0.0,0.0])
-franka_br_state = np.array([0.45, 0.4, 0.0, -1.4, 0.0, 2.4,0.0,
-                            0.0,0.0,0.0,0.0,0.0,0.0,0.0])
-q_des_list = [franka_bl_state, franka_br_state]#, drop_state, home_state]
+# franka_bl_state = np.array([-0.45, 0.4, 0.0, -1.4, 0.0, 2.4,0.0,
+#                             0.0,0.0,0.0,0.0,0.0,0.0,0.0])
+# franka_br_state = np.array([0.45, 0.4, 0.0, -1.4, 0.0, 2.4,0.0,
+#                             0.0,0.0,0.0,0.0,0.0,0.0,0.0])
+# q_des_list = [franka_bl_state, franka_br_state]#, drop_state, home_state]
 
+q_des_list = [np.array([0.0, -0.7853, 0.0, -2.356, 0.0, 3.14, -0.785, 0.0,0.0,0.0,0.0,0.0,0.0,0.0])]
 
 
 class GoalManager(object):
-    def __init__(self, state_sub_topic, goal_pub_topic, ee_pose_pub_topic, urdf_path, publish_freq=10):
+    def __init__(self, state_sub_topic, goal_pub_topic, ee_pose_pub_topic, urdf_path, goal_sub_topic=None, publish_freq=10):
         self.state_sub_topic = state_sub_topic
         self.goal_pub_topic = goal_pub_topic
         self.ee_pose_pub_topic = ee_pose_pub_topic
+        self.goal_sub_topic = goal_sub_topic
         self.urdf_path = urdf_path
         self.publish_freq = publish_freq
     
@@ -46,12 +48,14 @@ class GoalManager(object):
         self.goal_ee_pos, self.goal_ee_rot = self.robot_model.compute_forward_kinematics(self.goal_state[:,0:self.n_dofs], 
                                              self.goal_state[:,self.n_dofs:self.n_dofs*2], link_name='ee_link')
         self.goal_ee_quat = matrix_to_quaternion(self.goal_ee_rot)
-
+        print(self.goal_ee_quat)
 
 
         self.goal_pub = rospy.Publisher(self.goal_pub_topic, PoseStamped, queue_size=1, latch=False)
         self.ee_pub = rospy.Publisher(self.ee_pose_pub_topic, PoseStamped, queue_size=1, latch=False)
         self.state_sub = rospy.Subscriber(self.state_sub_topic, JointState, self.state_callback)
+        if self.goal_sub_topic is not None:
+            self.goal_transform_sub = rospy.Subscriber(self.goal_sub_topic, PoseStamped, self.goal_transform_callback)
 
         self.rate = rospy.Rate(self.publish_freq)
 
@@ -59,6 +63,8 @@ class GoalManager(object):
         self.curr_goal = PoseStamped()
         self.curr_goal.header = std_msgs.msg.Header()
         self.curr_goal.header.stamp = rospy.Time.now()
+
+
         self.curr_goal.pose.position.x = self.goal_ee_pos[0][0]
         self.curr_goal.pose.position.y = self.goal_ee_pos[0][1]
         self.curr_goal.pose.position.z = self.goal_ee_pos[0][2]
@@ -68,7 +74,7 @@ class GoalManager(object):
         self.curr_goal.pose.orientation.w = self.goal_ee_quat[0][3]
     
         self.curr_robot_ee_pose = PoseStamped()
-        self.curr_goal.header = std_msgs.msg.Header()
+        self.curr_robot_ee_pose.header = std_msgs.msg.Header()
 
         self.curr_robot_ee_pos = None
         self.curr_robot_ee_quat = None
@@ -137,10 +143,6 @@ class GoalManager(object):
         self.move_z_control.interaction_mode = InteractiveMarkerControl.MOVE_AXIS
 
         self.int_marker.controls.append(self.move_z_control)
-
-
-
-
         # add the interactive marker to our collection &
         # tell the server to call marker_callback() when feedback arrives for it
         self.server.insert(self.int_marker, self.marker_callback)
@@ -155,8 +157,25 @@ class GoalManager(object):
         # print(msg.marker_name + " is now at " + str(p.x) + ", " + str(p.y) + ", " + str(p.z))
         # print(msg.marker_name + "orientation is " + str(q.x) + ", " + str(q.y) + ", " + str(q.z) + ", " + str(q.w))
         self.curr_goal.header = msg.header
+        self.curr_goal.pose.position = msg.pose.position
+        self.curr_goal.pose.orientation.x = 7.0658e-01 
+        self.curr_goal.pose.orientation.y = 7.0764e-01
+        self.curr_goal.pose.orientation.z = 2.1807e-04
+        self.curr_goal.pose.orientation.w = 4.3688e-04
+    
+    
+    
+    
+    def goal_transform_callback(self, msg):
+        self.curr_goal.header = msg.header
         self.curr_goal.pose = msg.pose
+        self.curr_goal.pose.position.z += 0.1
+        # print(self.curr_goal.pose.position.x, self.curr_goal.pose.position.y)
+        # self.curr_goal.pose.position.x = msg.transform.translation.x 
+        # self.curr_goal.pose.position.y = msg.transform.translation.y
+        # self.curr_goal.pose.position.z = msg.transform.translation.z
 
+        # self.curr_goal.pose.orientation = msg.transform.orientation
 
 
     def state_callback(self, msg):
@@ -198,6 +217,7 @@ if __name__ == '__main__':
     joint_states_topic = rospy.get_param('~joint_states_topic')
     ee_goal_topic = rospy.get_param('~ee_goal_topic')
     ee_pose_topic = rospy.get_param('~ee_pose_topic')
+    goal_sub_topic = rospy.get_param('~goal_sub_topic')
     publish_freq = rospy.get_param('~goal_pub_freq')
     urdf_path = rospy.get_param('~urdf_path')
  
@@ -205,6 +225,7 @@ if __name__ == '__main__':
                                ee_goal_topic,
                                ee_pose_topic,
                                urdf_path,
+                               goal_sub_topic,
                                publish_freq)
     
     rospy.loginfo('Initiating Goal Publisher')

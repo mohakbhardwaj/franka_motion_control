@@ -4,12 +4,13 @@
   <!-- <arg name="mpc_yml_file" default="$(find franka_motion_control)/config/franka_reacher.yml" /> -->
   <arg name="config_file" default="/home/mohak/workspace/stochastic_control/content/configs/gym_tools/franka.yml" />
   <arg name="control_freq" default="100" />
-  <arg name="goal_pub_freq" default="1" />
+  <arg name="goal_pub_freq" default="10" />
   <arg name="debug" default="False" />
   <arg name="joint_states_topic" default="joint_pos_controller/joint_states" />
   <arg name="joint_command_topic" default="joint_pos_controller/joint_command" />
   <arg name="ee_goal_topic" default="ee_goal" />
   <arg name="ee_pose_topic" default="ee_pose" />
+  <arg name="goal_sub_topic" default="aruco_single/pose" />
   <arg name="filtered_state_topic" default="joint_states/filtered" />
   <arg name="pointcloud_topic" default="/camera/depth/color/points_filtered" />
   <arg name="fixed_frame" default="base_link" />
@@ -20,6 +21,7 @@
     <param name="joint_states_topic" value="$(arg joint_states_topic)" />
     <param name="ee_goal_topic" value="$(arg ee_goal_topic)" />
     <param name="ee_pose_topic" value="$(arg ee_pose_topic)" />
+    <param name="goal_sub_topic" value="$(arg goal_sub_topic)" />
     <param name="goal_pub_freq" value="$(arg goal_pub_freq)" />
     <param name="urdf_path" value="/home/mohak/catkin_ws_py2/src/franka_panda_description/robots/panda_arm.urdf" />
     <param name="urdf_path" value="/home/mohak/workspace/stochastic_control/content/assets/urdf/franka_description/franka_panda_no_gripper.urdf" />
