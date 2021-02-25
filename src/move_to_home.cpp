@@ -24,8 +24,8 @@ int main(int argc, char** argv) {
   ROS_INFO("robot_ip: %s", robot_ip.c_str());
 
 
-  std::array<double, 7> q_home = {{0, -M_PI_4, 0, -3 * M_PI_4, 0, M_PI_2, M_PI_4}}; 
-
+  // std::array<double, 7> q_home = {{0, -M_PI_4, 0, -3 * M_PI_4, 0, M_PI_2, M_PI_4}}; 
+  std::array<double, 7> q_home = {{0.0, -0.7853, 0.0, -2.356, 0.0, 3.14, -0.785}};
 
   try {
     franka::Robot robot(robot_ip);
