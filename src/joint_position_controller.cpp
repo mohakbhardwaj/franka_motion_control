@@ -24,6 +24,8 @@ JointPositionController::JointPositionController(ros::NodeHandle* nodehandle, st
     curr_dq_des_.setZero();
     curr_ddq_des_.setZero();
     delta_q_.setZero();
+    curr_q_bel_.setZero();
+    curr_dq_bel_.setZero();
     
     // robot_ =
     // model_ = robot_.loadModel();
@@ -100,12 +102,23 @@ void JointPositionController::setJointPositionGoal(std::array<double, 7>& q_goal
     curr_q_des_ = Vector7d(q_goal.data());
 }
 
-bool JointPositionController::publishRobotState(const franka::RobotState& robot_state){
+// bool JointPositionController::publishRobotState(const franka::RobotState& robot_state){
+//     curr_robot_state_.header.stamp = ros::Time::now();
+//     for (size_t i = 0; i < curr_robot_state_.position.size(); i++) {
+//         curr_robot_state_.position[i] = robot_state.q[i];
+//         curr_robot_state_.velocity[i] = robot_state.dq[i];
+//         curr_robot_state_.effort[i] = robot_state.dq_d[i];
+//     }
+//     state_publisher_.publish(curr_robot_state_);
+//     return true;
+// }
+
+bool JointPositionController::publishRobotState(const Vector7d& q, const Vector7d& dq){
     curr_robot_state_.header.stamp = ros::Time::now();
     for (size_t i = 0; i < curr_robot_state_.position.size(); i++) {
-        curr_robot_state_.position[i] = robot_state.q[i];
-        curr_robot_state_.velocity[i] = robot_state.dq[i];
-        curr_robot_state_.effort[i] = robot_state.dq_d[i];
+        curr_robot_state_.position[i] = q[i];
+        curr_robot_state_.velocity[i] = dq[i];
+        curr_robot_state_.effort[i] = 0.0;
     }
     state_publisher_.publish(curr_robot_state_);
     return true;
@@ -128,7 +141,7 @@ franka::JointPositions JointPositionController::motion_generator_callback(const 
     // std::array<bool, 7> joint_motion_finished{};
     bool motion_finished;
 
-    publishRobotState(robot_state);
+    // publishRobotState(robot_state);
 
     curr_q_ = Vector7d(robot_state.q_d.data());
 
@@ -183,7 +196,7 @@ franka::JointPositions JointPositionController::motion_generator_callback_integr
     std::array<bool, 7> joint_motion_finished{};
     bool motion_finished;
 
-    publishRobotState(robot_state);
+    // publishRobotState(robot_state);
 
     curr_q_ = Vector7d(robot_state.q_d.data());
 
@@ -250,12 +263,13 @@ franka::JointPositions JointPositionController::motion_generator_callback_integr
   }
 
 
+
 franka::Torques JointPositionController::torque_controller_callback(const franka::RobotState& robot_state, franka::Duration period){
     time_ += period.toSec();
-    publishRobotState(robot_state);
-
+    // publishRobotState(robot_state);
     curr_q_ = Vector7d(robot_state.q.data());
-    curr_dq_ = Vector7d(robot_state.dq.data());
+    // curr_dq_ = Vector7d(robot_state.dq.data());
+
 
 
     if(time_ == 0.0){
@@ -263,7 +277,40 @@ franka::Torques JointPositionController::torque_controller_callback(const franka
         q_des_cmd_ = curr_q_;
         dq_des_cmd_ = curr_dq_;
         ddq_des_cmd_.setZero();
+        curr_q_bel_= curr_q_;
+        prev_q_bel_ = curr_q_;
+        curr_dq_bel_ = curr_dq_;
     }
+    else{
+        //filter state
+        curr_q_bel_ = alpha_q_ * curr_q_ + (1.0 - alpha_q_) * curr_q_bel_;
+
+        curr_dq_ = (curr_q_bel_ - prev_q_bel_) / 0.001;
+        for(size_t i=0; i < 7; ++i){
+            // std::cout << curr_dq_[i] << std::endl;
+            if(std::abs(curr_dq_[i]) <= 0.05){
+                curr_dq_[i] = 0.0;
+            }
+        }
+        // std::cout << "after";
+        // for(size_t i=0; i < 7; ++i){
+        //     std::cout<<curr_dq_[i] << std::endl;
+        // }
+        curr_dq_bel_ = alpha_dq_ * curr_dq_ + (1.0 - alpha_dq_) * curr_dq_bel_;
+
+        for(size_t i=0; i < 7; ++i){
+            if(std::abs(curr_dq_bel_[i]) <= 0.001){
+                curr_dq_bel_[i] = 0.0;
+            }
+        }
+
+    }
+    prev_q_bel_ = curr_q_bel_;
+
+    publishRobotState(curr_q_bel_, curr_dq_bel_);
+
+    // curr_q_bel_ = curr_q_;
+    // curr_dq_bel_ = curr_dq_;
 
 
     Vector7d tau_d_error, tau_d_coriolis, tau_d_inertia, tau_d_calculated;
@@ -273,6 +320,14 @@ franka::Torques JointPositionController::torque_controller_callback(const franka
 
     if(command_pub_started_){
         
+
+        // //Filter state
+        // curr_q_bel_ = alpha_q_ * curr_q_ + (1.0 - alpha_q_) * curr_q_bel_;
+
+        // // curr_dq_bel_ = clip
+        // curr_dq_bel_ = alpha_dq_ * curr_dq_ + (1.0 - alpha_dq_) * curr_dq_bel_;
+
+        //update desired command
         q_des_cmd_ = curr_q_des_;
         dq_des_cmd_ = curr_dq_des_;
         ddq_des_cmd_ = curr_ddq_des_;
@@ -281,7 +336,7 @@ franka::Torques JointPositionController::torque_controller_callback(const franka
         //     tau_d_error[i] =  
         //         P_[i] * (curr_q_des_[i] - robot_state.q[i]) + D_[i] * (curr_dq_des_[i] - robot_state.dq[i]); // + coriolis[i];
         // }
-         
+
     }
     else{
         ROS_INFO("Waiting for goal...");
@@ -291,10 +346,12 @@ franka::Torques JointPositionController::torque_controller_callback(const franka
     // std::cout << "tau_error" << tau_d_error;
     // std::cout << "tau_coriolis" << tau_d_coriolis;
 
+    
+
     tau_d_inertia = inertia_matrix * ddq_des_cmd_;
     tau_d_inertia = Pf_.cwiseProduct(tau_d_inertia);
 
-    tau_d_error = P_.cwiseProduct(q_des_cmd_ - curr_q_) + D_.cwiseProduct(dq_des_cmd_ - curr_dq_);
+    tau_d_error = P_.cwiseProduct(q_des_cmd_ - curr_q_bel_) + D_.cwiseProduct(dq_des_cmd_ - curr_dq_bel_); //
     tau_d_calculated =  tau_d_inertia + tau_d_error + tau_d_coriolis;
 
     std::cout << "calculated torque: ";
@@ -303,26 +360,44 @@ franka::Torques JointPositionController::torque_controller_callback(const franka
     }
     std::cout << "\n";
 
+    std::cout << "q_des: ";
+    for(size_t i = 0; i < 7; ++i){
+        std::cout << q_des_cmd_[i] << " ";
+    }
+    std::cout << "\n";
+
+    std::cout << "dqdes: ";
+    for(size_t i = 0; i < 7; ++i){
+        std::cout << dq_des_cmd_[i] << " ";
+    }
+    std::cout << "\n";
+
     //Apply rate limiting (applied by default also)
     std::array<double, 7> tau_d_calculated_arr;
     Eigen::VectorXd::Map(&tau_d_calculated_arr[0], 7) = tau_d_calculated;
-    std::array<double, 7> tau_d_rate_limited =
-            franka::limitRate(franka::kMaxTorqueRate, tau_d_calculated_arr, robot_state.tau_J_d);
+    // std::array<double, 7> tau_d_rate_limited =
+    //         franka::limitRate(franka::kMaxTorqueRate, tau_d_calculated_arr, robot_state.tau_J_d);
     
     // if(!ros::ok()){
     //     ROS_INFO("Ros shutdown");
     // }
 
     ros::spinOnce();
-    return tau_d_rate_limited;
+    return tau_d_calculated_arr; //tau_d_rate_limited;
 }
 
 
 
 void JointPositionController::read_loop(){
-
+    double start_nsecs =ros::Time::now().toNSec();
+    franka::Duration period;
     robot_.read([&](const franka::RobotState& robot_state) {
-        return read_state_callback(robot_state);               
+        
+        bool ros_ok = read_state_callback(robot_state, period);
+        double nsecs_elapsed = ros::Time::now().toNSec() - start_nsecs;
+        
+        period = franka::Duration(nsecs_elapsed/1000000.0);
+        return ros_ok;
     }
     );
 }
@@ -341,8 +416,7 @@ void JointPositionController::control_loop(){
 }
 
 
-bool JointPositionController::read_state_callback(const franka::RobotState& robot_state){
-    franka::Duration period;
+bool JointPositionController::read_state_callback(const franka::RobotState& robot_state, franka::Duration period){
     // motion_generator_callback_integrator(robot_state, period);
     torque_controller_callback(robot_state, period);
     return ros::ok();
