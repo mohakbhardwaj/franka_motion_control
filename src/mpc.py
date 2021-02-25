@@ -61,7 +61,9 @@ class MPCController(object):
         # self.robot_state_filter = JointStateFilter(filter_coeff={'position': 1.0, 'velocity': 1.0}, dt=0.0)
         # self.state_filter_coeff = {'position': 0.1, 'velocity':0.01, 'acceleration':1.0}
         # self.state_filter_coeff = {'position': 0.8, 'velocity': 0.5, 'acceleration':1.0}
-        self.state_filter_coeff = {'position': 0.8, 'velocity': 0.05, 'acceleration':1.0}
+        # self.state_filter_coeff = {'position': 0.8, 'velocity': 0.05, 'acceleration':1.0}
+
+        self.state_filter_coeff = {'position': 1.0, 'velocity': 0.2, 'acceleration':1.0}
         self.robot_state_filter = RobotStateFilter(filter_coeff=self.state_filter_coeff,
                                                    dt=self.exp_params['control_dt'],
                                                    filter_keys=self.state_filter_coeff.keys())
@@ -75,7 +77,8 @@ class MPCController(object):
         #                                               filter_keys=self.vel_filter_coeff.keys())
 
 
-        self.command_filter_coeff = {'position': 0.3, 'velocity': 0.01, 'acceleration': 1.0}
+        # self.command_filter_coeff = {'position': 0.5, 'velocity': 0.05, 'acceleration': 1.0}
+        self.command_filter_coeff = {'position': 0.1, 'velocity': 0.1, 'acceleration': 1.0}
         self.robot_command_filter = JointStateFilter(filter_coeff=self.command_filter_coeff, 
                                                      dt=self.exp_params['control_dt'],
                                                      filter_keys=self.command_filter_coeff.keys())
@@ -262,14 +265,16 @@ class MPCController(object):
             if self.curr_state_raw is not None and self.curr_ee_goal is not None: # and self.curr_pointcloud is not None:
 
                 if self.state_received_flag:  
-                    # _ = self.robot_state_filter.predict_state(self.curr_mpc_command.effort, 0.01)   
-                    self.curr_state_filtered_dict = self.robot_state_filter.filter_state(self.curr_state_raw_dict, 0.01) #filters position  
+                #     # _ = self.robot_state_filter.predict_state(self.curr_mpc_command.effort, 0.01)   
+                #     # self.curr_state_filtered_dict = self.robot_state_filter.filter_state(self.curr_state_raw_dict, 0.01) #filters position  
+                #     self.curr_state_filtered_dict = self.curr_state_raw_dict #filters position  
 
-                    # self.curr_state_filtered_dict['velocity'] = clip_arr(self.curr_state_filtered_dict['velocity'], 0.03)  
+                #     # self.curr_state_filtered_dict['velocity'] = clip_arr(self.curr_state_filtered_dict['velocity'], 0.03)  
                                       
+                #     self.curr_state_filtered = dict_to_joint_state(self.curr_state_filtered_dict)
+                    self.curr_state_filtered_dict = self.robot_state_filter.filter_state(self.curr_state_raw_dict, 0.01) #self.curr_state_raw_dict
                     self.curr_state_filtered = dict_to_joint_state(self.curr_state_filtered_dict)
                     self.state_received_flag = False
-                
                 
                 curr_state_np = np.hstack((self.curr_state_filtered_dict['position'], 
                                            self.curr_state_filtered_dict['velocity'], 

@@ -23,8 +23,8 @@ for i in range(data['q_robot_r'].shape[1]):
 # i = 3
     # if i == 0:
     # ax[0].plot(data['q_robot_r'][:,i], color=colors[i], label='joint_{}_raw'.format(i))
-    ax[0].plot(data['tsteps'], data['q_robot_f'][:,i], color= colors[i], label='joint_{}_filtered'.format(i))
-    ax[0].plot(data['tsteps'], data['q_cmd'][:,i], color=colors[i], linestyle='dashed', label='joint_{}_command'.format(i))
+    ax[0].plot(data['tsteps'], data['q_robot_f'][:,i], color= colors[i])
+    ax[0].plot(data['tsteps'], data['q_cmd'][:,i], color=colors[i], linestyle='dashed', label='joint_{}'.format(i))
 
     # else:
     #     ax[0].plot(data['q_robot_r'][:,i])

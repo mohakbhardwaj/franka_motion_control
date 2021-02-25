@@ -14,17 +14,17 @@ import torch
 # goal_ee_pos_list = [[-0.3554, -0.7373,  0.2]] #0.1479
 # goal_ee_quat_list = [[ 0.1571,  0.8050, -0.5714,  0.0267]]
 
-# franka_bl_state = np.array([-0.45, 0.68, 0.0, -1.4, 0.0, 2.4,0.0,
-#                             0.0,0.0,0.0,0.0,0.0,0.0,0.0])
+franka_bl_state = np.array([-0.45, 0.68, 0.0, -1.4, 0.0, 2.4,0.0,
+                            0.0,0.0,0.0,0.0,0.0,0.0,0.0])
 
-# franka_bl_state = np.array([-0.45, 0.4, 0.0, -1.4, 0.0, 2.4,0.0,
-#                             0.0,0.0,0.0,0.0,0.0,0.0,0.0])
-# franka_br_state = np.array([0.45, 0.4, 0.0, -1.4, 0.0, 2.4,0.0,
-#                             0.0,0.0,0.0,0.0,0.0,0.0,0.0])
-# q_des_list = [franka_bl_state, franka_br_state]#, drop_state, home_state]
+franka_bl_state = np.array([-0.45, 0.4, 0.0, -1.4, 0.0, 2.4,0.0,
+                            0.0,0.0,0.0,0.0,0.0,0.0,0.0])
+franka_br_state = np.array([0.45, 0.4, 0.0, -1.4, 0.0, 2.4,0.0,
+                            0.0,0.0,0.0,0.0,0.0,0.0,0.0])
+q_des_list = [franka_bl_state, franka_br_state]#, drop_state, home_state]
 
-q_des_list = [np.array([0.0, -0.7853, 0.0, -2.356, 0.0, 3.14, -0.785, 0.0,0.0,0.0,0.0,0.0,0.0,0.0])]
-
+# q_des_list = [np.array([0.0, -0.7853, 0.0, -2.356, 0.0, 3.14, -0.785, 0.0,0.0,0.0,0.0,0.0,0.0,0.0])]
+# q_des_list = [np.array([-0.207, -0.494, -0.398, -2.239, 1.289, 1.194, 0.462, 0.0,0.0,0.0,0.0,0.0,0.0,0.0])]
 
 class GoalManager(object):
     def __init__(self, state_sub_topic, goal_pub_topic, ee_pose_pub_topic, urdf_path, goal_sub_topic=None, publish_freq=10):
@@ -150,6 +150,8 @@ class GoalManager(object):
         # 'commit' changes and send to all clients
         self.server.applyChanges()
 
+        self.is_goal_invalid = False
+
 
     def marker_callback(self, msg):
         # p = msg.pose.position
@@ -158,18 +160,26 @@ class GoalManager(object):
         # print(msg.marker_name + "orientation is " + str(q.x) + ", " + str(q.y) + ", " + str(q.z) + ", " + str(q.w))
         self.curr_goal.header = msg.header
         self.curr_goal.pose.position = msg.pose.position
-        self.curr_goal.pose.orientation.x = 7.0658e-01 
-        self.curr_goal.pose.orientation.y = 7.0764e-01
-        self.curr_goal.pose.orientation.z = 2.1807e-04
-        self.curr_goal.pose.orientation.w = 4.3688e-04
+        self.curr_goal.pose.orientation.x = self.goal_ee_quat[0][0] 
+        self.curr_goal.pose.orientation.y = self.goal_ee_quat[0][1]
+        self.curr_goal.pose.orientation.z = self.goal_ee_quat[0][2]
+        self.curr_goal.pose.orientation.w = self.goal_ee_quat[0][3]
     
     
     
     
     def goal_transform_callback(self, msg):
-        self.curr_goal.header = msg.header
-        self.curr_goal.pose = msg.pose
-        self.curr_goal.pose.position.z += 0.1
+        if msg.pose.position.x != -5000 and \
+           msg.pose.position.y != -5000 and \
+           msg.pose.position.z != -5000:
+
+            self.curr_goal.header = msg.header
+            self.curr_goal.pose = msg.pose
+            self.curr_goal.pose.position.z += 0.07
+            self.is_goal_invalid = False
+        else:
+            self.is_goal_invalid = True
+            rospy.logwarn('[GoalManager]: Invalid goal received!')
         # print(self.curr_goal.pose.position.x, self.curr_goal.pose.position.y)
         # self.curr_goal.pose.position.x = msg.transform.translation.x 
         # self.curr_goal.pose.position.y = msg.transform.translation.y
@@ -201,7 +211,7 @@ class GoalManager(object):
     def publish_goal_loop(self):
         while not rospy.is_shutdown():
         
-            if self.curr_goal is not None:
+            if (self.curr_goal is not None) and (not self.is_goal_invalid):
                 # rospy.loginfo('[Goal Manager] Curr Goal:', self.curr_goal)
                 self.curr_goal.header.stamp = rospy.Time.now()
                 self.goal_pub.publish(self.curr_goal)                
