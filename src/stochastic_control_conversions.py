@@ -20,10 +20,10 @@ def pose_stamped_to_np(msg):
     pos = np.array([msg.pose.position.x,
                     msg.pose.position.y,
                     msg.pose.position.z])
-    quat = np.array([msg.pose.orientation.x,
+    quat = np.array([msg.pose.orientation.w,
+                        msg.pose.orientation.x,
                         msg.pose.orientation.y,
-                        msg.pose.orientation.z,
-                        msg.pose.orientation.w])
+                        msg.pose.orientation.z])
     return pos, quat
 
 # def np_to_pose_stamped(pos, quat, stamp):

@@ -4,6 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from differentiable_robot_model.differentiable_robot_model import DifferentiableRobotModel
 from differentiable_robot_model.coordinate_transform import matrix_to_quaternion, quaternion_to_matrix
+from stochastic_control.mpc_tools.cost import PoseCost
 
 import torch
 
@@ -12,11 +13,12 @@ import torch
 # print(ptcld_data['data'])
 # input('....')
 data = np.load('mpc_data.npz')
+err_data = np.load('mpc_error_data.npz')
 urdf_path = "/home/mohak/workspace/stochastic_control/content/assets/urdf/franka_description/franka_panda_no_gripper.urdf"
 
 
 fig, ax = plt.subplots(5,1)
-fig2, ax2 = plt.subplots(3,1)
+fig2, ax2 = plt.subplots(4,1)
 colors = ['#1b9e77', '#d95f02', '#7570b3', '#e7298a', '#66a61e', '#e6ab02', '#a6761d']
 
 for i in range(data['q_robot_r'].shape[1]):
@@ -55,6 +57,20 @@ tensor_args = {'device':"cpu", 'dtype':torch.float32}
 robot_model = DifferentiableRobotModel(urdf_path, None, 
                     tensor_args=tensor_args)
 
+
+vec_weight = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+weight = [1.0,1.0]
+position_gaussian_params = {'n':0, 'c':0.2, 's':0.0, 'r':10.0}
+orientation_gaussian_params =  {'n':0, 'c':0.2, 's':0.0, 'r':10.0}
+hinge_val =  -1
+convergence_val =  [0.0, 0.0] # orientation, position
+
+tensor_args = {'device':"cpu", 'dtype':torch.float32}
+pose_cost_fn =  PoseCost(weight, vec_weight, position_gaussian_params, 
+                         orientation_gaussian_params, tensor_args, 
+                         hinge_val, convergence_val)
+
+
 #Run FK to get ee pos, quat
 q = torch.tensor(data['q_robot_r'])
 qd = torch.tensor(data['qd_robot_r'])
@@ -63,9 +79,15 @@ ee_quat = matrix_to_quaternion(ee_rot)
 print(ee_pos.shape, ee_quat.shape)
 
 ee_goal_pos_torch = torch.tensor(data['ee_goal_pos'])
-ee_error = torch.norm(ee_goal_pos_torch - ee_pos, dim=-1)
-print(ee_pos.shape, ee_error.shape)
+ee_goal_rot_torch = quaternion_to_matrix(torch.tensor(data['ee_goal_quat']))
+ee_dist_error = torch.norm(ee_goal_pos_torch - ee_pos, dim=-1)
+print(ee_goal_pos_torch.shape, ee_goal_rot_torch.shape, ee_pos.shape, ee_rot.shape)
 
+
+
+
+# cost, ee_rot_error, ee_dist_error = pose_cost_fn.forward(ee_pos, ee_rot, ee_goal_pos_torch, ee_goal_rot_torch)
+# preint(ee_rot_error.shape, ee_dist_error.shape)
 
 cart_labels = {'x': '#1b9e77', 'y': '#d95f02', 'z': '#7570b3'}
 quat_labels = {'x': '#1b9e77', 'y': '#d95f02', 'z': '#7570b3', 'w': '#e7298a'}
@@ -79,15 +101,16 @@ for i in range(4):
     ax2[1].plot(data['tsteps'], ee_quat[:,i], label=key, color=quat_labels[key])
     ax2[1].plot(data['tsteps'], data['ee_goal_quat'][:,i], linestyle='dashed', label=key+"_des", color=quat_labels[key])
 
-ax2[2].plot(data['tsteps'], ee_error)
+ax2[2].plot(data['tsteps'], ee_dist_error)
+ax2[3].plot(err_data['goal_rot_err'])
 
 ax2[0].set_title('EE cartesian')
 ax2[1].set_title('EE ee_quaternion')
 ax2[2].set_title('EE L2 error')
-
+ax2[3].set_title('EE rot error')
 ax[0].legend()
 ax2[0].legend()
 ax2[1].legend()
-plt.tight_layout()
+# plt.tight_layout()
 plt.show()
 data.close()
