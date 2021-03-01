@@ -71,7 +71,7 @@ home_config = np.array([0.00, -0.78, 0.00, -2.35, 0.00, 1.57, 0.78,
 
 #Pose reaching
 q_des_list = [joint_goal_1, joint_goal_2, joint_goal_4,
-                     joint_goal_6, joint_goal_7, home_config]
+              joint_goal_6, joint_goal_7, home_config]
 
 #Pose reaching + collision avoidance
 # joint_goal_1[1]
