@@ -66,10 +66,24 @@ joint_goal_6 = np.array([-0.85, 0.35, 0.2, -1.8, 0.0, 2.4,0.0,
 
 joint_goal_7 = np.array([1., 0.55, -0.2, -1.8, 0.0, 2.4,0.0,
                         0.0,0.0,0.0,0.0,0.0,0.0,0.0])
-home_state = np.array([0.00, -0.78, 0.00, -2.35, 0.00, 1.57, 0.78,
+home_config = np.array([0.00, -0.78, 0.00, -2.35, 0.00, 1.57, 0.78,
                             0.0,0.0,0.0,0.0,0.0,0.0,0.0])
+
+#Pose reaching
 q_des_list = [joint_goal_1, joint_goal_2, joint_goal_4,
-                     joint_goal_6, joint_goal_7, home_state]
+                     joint_goal_6, joint_goal_7, home_config]
+
+#Pose reaching + collision avoidance
+# joint_goal_1[1]
+joint_goal_8 = np.array([0.0, 0.4, 0.0, -1.381, 0.0, 1.836, 0.780,  0.0,0.0,0.0,0.0,0.0,0.0,0.0]) #0.339
+joint_goal_2[1] = 0.4
+joint_goal_6[0] = -1.0
+joint_goal_6[1] = 0.4
+q_des_list = [joint_goal_2, joint_goal_8,
+              joint_goal_6, joint_goal_2, joint_goal_6, joint_goal_8, home_config]
+
+home_config = np.array([-0.9, -0.9, 1.2, -1.9, -0.2, 1.57, 0.78,  0.0,0.0,0.0,0.0,0.0,0.0,0.0])
+desired_quat = [0.0000,  0.7093, -0.7049,  0.0000]
 
 
 class GoalManager(object):
@@ -126,6 +140,9 @@ class GoalManager(object):
             #normalize quaternion
             self.goal_ee_quat = self.goal_ee_quat / torch.norm(self.goal_ee_quat)
 
+            # print(self.goal_ee_quat)
+            # exit()
+
             self.curr_goal_ros.pose.position.x = self.goal_ee_pos[0][0]
             self.curr_goal_ros.pose.position.y = self.goal_ee_pos[0][1]
             self.curr_goal_ros.pose.position.z = self.goal_ee_pos[0][2]
@@ -174,10 +191,10 @@ class GoalManager(object):
         self.curr_goal_ros.pose.position = msg.pose.position
 
 
-        self.curr_goal_ros.pose.orientation.x = self.goal_ee_quat[0][0] 
-        self.curr_goal_ros.pose.orientation.y = self.goal_ee_quat[0][1]
-        self.curr_goal_ros.pose.orientation.z = self.goal_ee_quat[0][2]
-        self.curr_goal_ros.pose.orientation.w = self.goal_ee_quat[0][3]
+        self.curr_goal_ros.pose.orientation.w = desired_quat[0] #self.goal_ee_quat[0][0] 
+        self.curr_goal_ros.pose.orientation.x = desired_quat[1]#self.goal_ee_quat[0][1]
+        self.curr_goal_ros.pose.orientation.y = desired_quat[2]#self.goal_ee_quat[0][2]
+        self.curr_goal_ros.pose.orientation.z = desired_quat[3]#self.goal_ee_quat[0][3]
 
         # self.curr_goal_ros.pose.orientation.x = rot_const_goal_quat[0]
         # self.curr_goal_ros.pose.orientation.y = rot_const_goal_quat[1]
@@ -199,10 +216,15 @@ class GoalManager(object):
             self.curr_goal_ros.pose = msg.pose
             self.curr_goal_ros.pose.position.z += 0.01
 
-            self.curr_goal_ros.pose.orientation.w = self.goal_ee_quat[0][0]
-            self.curr_goal_ros.pose.orientation.x = self.goal_ee_quat[0][1]
-            self.curr_goal_ros.pose.orientation.y = self.goal_ee_quat[0][2]
-            self.curr_goal_ros.pose.orientation.z = self.goal_ee_quat[0][3]
+            # self.curr_goal_ros.pose.orientation.w = self.goal_ee_quat[0][0]
+            # self.curr_goal_ros.pose.orientation.x = self.goal_ee_quat[0][1]
+            # self.curr_goal_ros.pose.orientation.y = self.goal_ee_quat[0][2]
+            # self.curr_goal_ros.pose.orientation.z = self.goal_ee_quat[0][3]
+
+            self.curr_goal_ros.pose.orientation.w = desired_quat[0] #self.goal_ee_quat[0][0] 
+            self.curr_goal_ros.pose.orientation.x = desired_quat[1]#self.goal_ee_quat[0][1]
+            self.curr_goal_ros.pose.orientation.y = desired_quat[2]#self.goal_ee_quat[0][2]
+            self.curr_goal_ros.pose.orientation.z = desired_quat[3]#self.goal_ee_quat[0][3]
 
 
             self.goal_ee_pos[0][0] = self.curr_goal_ros.pose.position.x

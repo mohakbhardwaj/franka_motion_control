@@ -8,6 +8,8 @@ import ros_numpy
 from sensor_msgs.msg import JointState, PointCloud2
 from std_msgs.msg import String
 import torch
+torch.set_num_threads(4)
+torch.backends.cudnn.benchmark = True
 torch.multiprocessing.set_start_method('spawn',force=True)
 
 import yaml
@@ -30,7 +32,7 @@ np.set_printoptions(precision=6)
 class MPCController(object):
     def __init__(self, robot_state_topic, command_topic, goal_topic, pointcloud_topic,
                 filtered_state_topic, config_file, control_freq, fixed_frame,  
-                pointcloud_frame, debug=False, joint_names=[]):
+                pointcloud_frame, ptcld_data_file="", debug=False, joint_names=[]):
         #user_command_topic
         self.robot_state_topic = robot_state_topic
         self.command_topic = command_topic
@@ -44,6 +46,13 @@ class MPCController(object):
         self.pointcloud_frame = pointcloud_frame
         self.debug = debug
         self.joint_names = joint_names
+
+        self.ptcld_data_file = ptcld_data_file
+        self.env_pointcloud_data = None
+
+        if len(self.ptcld_data_file) > 0:
+            self.env_pointcloud_data = torch.load(self.ptcld_data_file)
+            print(self.env_pointcloud_data['pc'].shape)
 
         # self.goal_state_list = goal_state_list
         # self.curr_goal_idx = 0
@@ -97,7 +106,7 @@ class MPCController(object):
 
         self.state_sub = rospy.Subscriber(self.robot_state_topic, JointState, self.state_callback)
         self.goal_sub = rospy.Subscriber(self.goal_topic, PoseStamped, self.goal_callback)
-        self.pointcloud_sub = rospy.Subscriber(self.pointcloud_topic, PointCloud2, self.pointcloud_callback)
+        # self.pointcloud_sub = rospy.Subscriber(self.pointcloud_topic, PointCloud2, self.pointcloud_callback)
         # self.user_command_sub = rospy.Subscriber(self.user_command_topic, String, self.user_command_callback)
         self.rate = rospy.Rate(self.control_freq)
 
@@ -162,15 +171,22 @@ class MPCController(object):
         # self.curr_state_filtered_dict = self.robot_state_filter.filter_state(self.curr_state_raw_dict, 0.001)
         # self.curr_state_filtered = dict_to_joint_state(self.curr_state_filtered_dict)
 
+    # def pointcloud_callback(self, msg):
+    #     #only static scenes for now
+    #     if not self.pointcloud_received:
+    #         self.curr_pointcloud = msg
+    #         pc_data = torch.tensor(pointcloud2_to_np(self.curr_pointcloud))
+    #         pc_labels = torch.ones(pc_data.shape[0],1)
+    #         robot_camera_pose = torch.tensor([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0]) #since pointcloud is base_link frame
+    #         camera_data = {'pc': pc_data, 'pc_seg': pc_labels, 'robot_camera_pose': robot_camera_pose}
+    #         torch.save(camera_data, '/home/mohak/catkin_ws/src/franka_motion_control/data/rss_2021/obstacle_avoidance/environments/camera_data_1.p')
+    #         rospy.loginfo('Pointcloud saved!!!!!!!!!!!!!!')
+    #         # np.savez('/home/mohak/catkin_ws/src/franka_motion_control/data/pointcloud.npz', 'wb',
+    #         #         data=data)
+    #         # self.controller.rollout_fn.voxel_collision_cost.coll.set_scene(data, np.zeros_like(data))
+    #         self.pointcloud_received = True
 
-    def pointcloud_callback(self, msg):
-        self.curr_pointcloud = msg
-        if not self.pointcloud_received:
-            self.pointcloud_received = True
-            data = pointcloud2_to_np(self.curr_pointcloud)
-            np.savez('/home/mohak/catkin_ws/src/franka_motion_control/data/pointcloud.npz', 'wb',
-                    data=data)
-            self.controller.rollout_fn.voxel_collision_cost.coll.set_scene(data, np.zeros_like(data))
+
 
     def goal_callback(self, msg):
         #Update mpc goal
@@ -378,6 +394,12 @@ class MPCController(object):
         self.exp_params['robot_params'] = self.robot_params
         rollout_fn = ArmReacherCollisionNN(self.exp_params, device=device, float_dtype=float_dtype, world_params=None)
 
+        #Initialize collision avoidance if data provided
+        if self.exp_params['cost']['scene_collision']['weight'] > 0:
+            if self.env_pointcloud_data is not None:
+                rollout_fn.scene_collision_cost.set_scene(self.env_pointcloud_data)
+                print('[MPC]: Rollout function set scene called')
+
         #Initialize world for collision cost
         # temp_trans = torch.ones(3, device=device, dtype=float_dtype)
         # temp_rot = torch.ones(3,3, device=device, dtype=float_dtype)
@@ -496,6 +518,7 @@ if __name__ == '__main__':
     pointcloud_frame = rospy.get_param('~pointcloud_frame')
     debug = rospy.get_param('~debug')
     joint_names = rospy.get_param('~joint_names')
+    ptcld_data_file = rospy.get_param('~ptcld_data_file')
 
     mpc_controller = MPCController(joint_states_topic,
                                    joint_command_topic,
@@ -506,6 +529,7 @@ if __name__ == '__main__':
                                    control_freq,
                                    fixed_frame,
                                    pointcloud_frame,
+                                   ptcld_data_file,
                                    debug,
                                    joint_names)
 

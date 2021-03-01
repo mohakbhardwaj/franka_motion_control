@@ -1,0 +1,11 @@
+<?xml version="1.0" ?>
+
+<launch>
+  <arg name="pointcloud_topic" default="/camera/depth/color/points_filtered" />
+  <arg name="outfile_name" default="camera_data_1.p" />
+
+  <node name="env_manager" type="env_manager.py" pkg="franka_motion_control" output="screen">
+    <param name="pointcloud_topic" value="$(arg pointcloud_topic)" />
+    <param name="outfile_name" value="$(arg outfile_name)" />
+  </node>
+</launch>
