@@ -70,11 +70,10 @@ private:
     Vector7d curr_q_;
     Vector7d curr_dq_;
     Vector7d delta_q_;
-
     Vector7d curr_q_bel_, curr_dq_bel_, prev_q_bel_; //filtered belief over state
-
     Vector7d q_des_cmd_, dq_des_cmd_, ddq_des_cmd_;
-
+    Vector7d tau_d_error_, tau_d_coriolis_, tau_d_inertia_, tau_d_calculated_;
+    std::array<double, 7> tau_d_calculated_arr_;
 
     double time_ = 0.0;
     double dq_max_;
@@ -96,7 +95,7 @@ private:
     // Vector7f D_ = (Vector7f() << 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.5).finished();
     double alpha_q_ = 0.8; //1.0;
     double alpha_dq_ = 0.01; //0.05; //1.0; 
-    Vector7d Pf_ = (Vector7d() << 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5).finished();
+    Vector7d Pf_ = (Vector7d() << 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01).finished();
     
 
     // Vector7d P_ = (Vector7d() << 210.0, 200.0, 5.0, 7.0, 5.0, 6.0, 7.0).finished();
@@ -118,16 +117,29 @@ private:
     // Vector7d P_ = (Vector7d() << 300.0, 300.0, 300.0, 300.0, 100.0, 100.0, 100.0).finished();    
     // Vector7d D_ = (Vector7d() << 20.0, 20.0, 20.0, 25.0, 2.0, 2.0, 2.0).finished();
 
-    Vector7d P_ = (Vector7d() << 650.0, 650.0, 650.0, 650.0, 200.0, 100.0, 50.0).finished();    
+    // Vector7d P_ = (Vector7d() << 500.0, 500.0, 500.0, 500.0, 100.0, 100.0, 50.0).finished();    
+    // Vector7d P_ = (Vector7d() << 300.0, 300.0, 300.0, 300.0, 100.0, 100.0, 50.0).finished();
+    // Vector7d D_ = (Vector7d() << 20.0, 20.0, 20.0, 25.0, 2.0, 2.0, 2.0).finished();
+    
+    // Vector7d D_ = (Vector7d() << 25.0, 25.0, 25.0, 25.0, 2.0, 2.0, 2.0).finished();
+    // Vector7d D_ = (Vector7d() << 30.0, 30.0, 30.0, 30.0, 2.0, 2.0, 2.0).finished();
+
+
+    // Vector7d P_ = (Vector7d() << 600.0, 600.0, 600.0, 600.0, 100.0, 100.0, 50.0).finished();    
+    // // Vector7d D_ = (Vector7d() << 50.0, 50.0, 50.0, 50.0, 5.0, 5.0, 5.0).finished();
+    // Vector7d D_ = (Vector7d() << 25.0, 25.0, 25.0, 25.0, 2.0, 2.0, 2.0).finished();
+    // // Vector7d D_ = (Vector7d() << 20.0, 20.0, 20.0, 20.0, 2.0, 2.0, 2.0).finished();
+    // Vector7d D_ = (Vector7d() << 2.0, 2.0, 2.0, 2.0, 0.2, 0.2, 2.0).finished();
+
+
+    // Vector7d P_ = (Vector7d() << 650.0, 650.0, 650.0, 650.0, 200.0, 100.0, 50.0).finished();    
+    Vector7d P_ = (Vector7d() << 650.0, 650.0, 650.0, 650.0, 100.0, 100.0, 50.0).finished();    
     // Vector7d D_ = (Vector7d() << 25.0, 25.0, 25.0, 25.0, 2.0, 2.0, 2.0).finished();
     Vector7d D_ = (Vector7d() << 30.0, 30.0, 30.0, 30.0, 5.0, 5.0, 2.0).finished();
 
 
-    // Vector7d P_ = (Vector7d() << 600.0, 600.0, 600.0, 600.0, 250.0, 100.0, 50.0).finished();    
-    // Vector7d D_ = (Vector7d() << 50.0, 50.0, 50.0, 50.0, 25.0, 25.0, 15.0).finished();
-    // Vector7d D_ = (Vector7d() << 25.0, 25.0, 25.0, 25.0, 2.0, 2.0, 2.0).finished();
-    // Vector7d D_ = (Vector7d() << 20.0, 20.0, 20.0, 20.0, 2.0, 2.0, 2.0).finished();
-    // Vector7d D_ = (Vector7d() << 2.0, 2.0, 2.0, 2.0, 0.2, 0.2, 2.0).finished();
+
+
 
     // member methods as well:
     void initializeSubscribers(); // we will define some helper methods to encapsulate the gory details of initializing subscribers, publishers and services

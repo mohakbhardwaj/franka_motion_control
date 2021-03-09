@@ -28,12 +28,13 @@ int main(int argc, char** argv) {
   // std::array<double, 7> q_home = {{0.0, -0.7853, 0.0, -2.356, 0.0, 3.14, -0.785}};
 
   // std::array<double, 7> q_home = {{-0.207, -0.494, -0.398, -2.239, 1.289, 1.194, 0.462}};
-  
+  // std::array<double, 7> q_home = {{1.745, 0.914, -2.254, -2.306, 0.784, 1.617, -0.109}}; 
+  // std::array<double, 7> q_home = {{-0.9, -0.9, 1.2, -1.9, -0.2, 1.57, 0.78}}; 
 
   try {
     franka::Robot robot(robot_ip);
     setDefaultBehavior(robot);
-    double speed_factor = 0.5;
+    double speed_factor = 0.3;
 
     
     MotionGenerator motion_generator(speed_factor, q_home);
