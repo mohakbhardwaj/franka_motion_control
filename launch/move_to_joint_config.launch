@@ -1,0 +1,14 @@
+<?xml version="1.0" ?>
+
+<launch>
+  <arg name="robot_ip" default="172.16.0.2" />
+  <arg name="goal_config" default="[0.0, -0.7853, 0.0, -2.3561, 0.0, 1.5707, 0.7853]" />
+  <arg name="speed_factor" default="0.2" />
+
+  <node name="move_to_joint_config" type="move_to_joint_config" pkg="franka_motion_control" output="screen">
+    <param name="robot_ip" value="$(arg robot_ip)" type="str" />
+    <rosparam param="goal_config" subst_value="True">$(arg goal_config)</rosparam>
+    <param name="speed_factor" value="$(arg speed_factor)" />
+  </node>
+
+</launch>
