@@ -1,4 +1,10 @@
 ## Setting up workspace with ROS + Python 3 
+```
+conda install -c conda-forge ros-actionlib-msgs
+conda install -c conda-forge ros-sensor-msgs
+conda install -c conda-forge ros-geometry-msgs
+```
+
 
 
 change first line to cmake_minimum_required(VERSION 2.8.3) in geometry/geometry/CMakeLists.txt
@@ -29,6 +35,7 @@ On robot-pc aka robotuna
 git clone --single-branch --branch melodic-devel https://github.com/ros/robot_state_publisher.git 
 git clone --single-branch --branch melodic-devel https://github.com/ros/kdl_parser.git
 ```
+
 
 ## Setting up ROS + Networking
 

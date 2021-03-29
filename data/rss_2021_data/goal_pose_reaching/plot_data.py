@@ -149,6 +149,31 @@ fig4.savefig('franka_real_pose_reaching_ee_error.pdf', dpi=600, bbox_inches='tig
 fig5.savefig('franka_real_pose_reaching_quat_eror.pdf', dpi=600, bbox_inches='tight')
 
 
+#calculate errors after settling
+xcoords =  np.arange(12, data['tsteps'][-1]+12, 12)
+xcoords[-1] = data['tsteps'][-1]
+print(data['tsteps'][-1])
+print(xcoords)
+print(ee_dist_error)
+ee_dist_errors_settle = np.interp(xcoords, data['tsteps'], ee_dist_error)
+ee_quat_errors_settle = np.interp(xcoords, data['tsteps'], ee_quat_error)
+
+print(ee_dist_errors_settle)
+print(ee_quat_errors_settle)
+
+avg_error_dist = np.average(ee_dist_errors_settle)
+med_error_dist = np.median(ee_dist_errors_settle)
+print('Average position error', avg_error_dist)
+print('Median position error', med_error_dist)
+
+avg_error_quat = np.average(ee_quat_errors_settle)
+med_error_quat = np.median(ee_quat_errors_settle)
+print('Average quaternion error', avg_error_quat)
+print('Median quaternion error', med_error_quat)
+
+
+
+
 # ax2[1].set_title('EE ee_quaternion')
 # ax2[2].set_title('EE L2 error')
 # ax2[3].set_title('EE rot error')

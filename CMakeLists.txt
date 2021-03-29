@@ -132,39 +132,90 @@ include_directories(
 #   src/${PROJECT_NAME}/franka_motion_control.cpp
 # )
 
-add_library(joint_position_controller STATIC
-  src/joint_position_controller.cpp
+
+add_library(franka_controller STATIC
+  src/franka_controller.cpp
 )
 
-target_link_libraries(joint_position_controller PUBLIC
+target_link_libraries(franka_controller PUBLIC
   ${Franka_LIBRARIES}
   ${catkin_LIBRARIES}
 )
 
-target_include_directories(joint_position_controller SYSTEM PUBLIC
+target_include_directories(franka_controller SYSTEM PUBLIC
   ${Franka_INCLUDE_DIRS}
   ${EIGEN3_INCLUDE_DIRS}
   ${catkin_INCLUDE_DIRS}
 )
-target_include_directories(joint_position_controller PUBLIC
+target_include_directories(franka_controller PUBLIC
   include
 )
 
-set(NODES
-  joint_position_control_node
-  #robot_state_publisher
+add_library(torque_controller STATIC
+  src/torque_controller.cpp
+)
+
+target_link_libraries(torque_controller PUBLIC
+  franka_controller
+  ${Franka_LIBRARIES}
+  ${catkin_LIBRARIES}
+)
+
+target_include_directories(torque_controller SYSTEM PUBLIC
+  ${Franka_INCLUDE_DIRS}
+  ${EIGEN3_INCLUDE_DIRS}
+  ${catkin_INCLUDE_DIRS}
+)
+target_include_directories(torque_controller PUBLIC
+  include
 )
 
 
-foreach(node ${NODES})
-  add_executable(${node} src/${node}.cpp)
-  target_include_directories(${node} SYSTEM PUBLIC
+#add_library(joint_position_controller STATIC
+#  src/joint_position_controller.cpp
+#)
+
+#target_link_libraries(joint_position_controller PUBLIC
+#  ${Franka_LIBRARIES}
+#  ${catkin_LIBRARIES}
+#)
+
+#target_include_directories(joint_position_controller SYSTEM PUBLIC
+#  ${Franka_INCLUDE_DIRS}
+#  ${EIGEN3_INCLUDE_DIRS}
+#  ${catkin_INCLUDE_DIRS}
+#)
+# target_include_directories(joint_position_controller PUBLIC
+#  include
+# )
+
+
+add_executable(torque_controller_node src/torque_controller_node.cpp)
+target_include_directories(torque_controller_node SYSTEM PUBLIC
     ${Franka_INCLUDE_DIRS}
     ${EIGEN3_INCLUDE_DIRS}
     ${catkin_INCLUDE_DIRS}
-  )
- target_link_libraries(${node} joint_position_controller Franka::Franka)
-endforeach()
+)
+target_link_libraries(torque_controller_node torque_controller franka_controller Franka::Franka)
+
+
+
+#set(NODES
+#  torque_controller_node
+#)
+
+
+#foreach(node ${NODES})
+#  add_executable(${node} src/${node}.cpp)
+#  target_include_directories(${node} SYSTEM PUBLIC
+#    ${Franka_INCLUDE_DIRS}
+#    ${EIGEN3_INCLUDE_DIRS}
+#    ${catkin_INCLUDE_DIRS}
+#  )
+# target_link_libraries(${node} franka_controller Franka::Franka)
+#endforeach()
+
+
 
 add_library(examples_common STATIC
   src/examples_common.cpp)
@@ -180,13 +231,13 @@ target_include_directories(examples_common SYSTEM PUBLIC
   ${catkin_INCLUDE_DIRS}
 ) 
 
-add_executable(move_to_home src/move_to_home.cpp)
-target_include_directories(move_to_home SYSTEM PUBLIC
+add_executable(move_to_joint_config src/move_to_joint_config.cpp)
+target_include_directories(move_to_joint_config SYSTEM PUBLIC
     ${Franka_INCLUDE_DIRS}
     ${EIGEN3_INCLUDE_DIRS}
     ${catkin_INCLUDE_DIRS}
   )
-target_link_libraries(move_to_home examples_common Franka::Franka)
+target_link_libraries(move_to_joint_config examples_common Franka::Franka)
 
 
 ## Add cmake target dependencies of the library
