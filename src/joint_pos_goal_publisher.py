@@ -48,7 +48,7 @@ def state_sub(msg):
 
 def goal_pub():
     goal_state = JointState()
-    pub = rospy.Publisher('joint_pos_controller/joint_command', JointState, queue_size=1)
+    pub = rospy.Publisher('franka_motion/joint_command', JointState, queue_size=1)
     rate = rospy.Rate(100)
     while not rospy.is_shutdown():
         goal_state.position = q_goal[0:7]

@@ -16,24 +16,21 @@
 
 int main(int argc, char** argv) 
 {
-    ros::init(argc, argv, "FrankaTorqueController");
+    ros::init(argc, argv, "FrankaTrackingController");
 
+    ros::NodeHandle n;
     ros::NodeHandle nh("~");
 
     std::string robot_ip;
     nh.getParam("robot_ip", robot_ip);
     ROS_INFO("robot_ip: %s", robot_ip.c_str());
     
-    // bool monitor;
-    // nh.getParam("monitor", monitor);
-    // ROS_INFO("monitor mode: %d",  monitor);
-
     std::string mode;
     nh.getParam("mode", mode);
-    ROS_INFO('Mode: %d', mode)
+    ROS_INFO("Mode: %s", mode.c_str());
 
     try {
-        TorqueController controller(&nh, robot_ip);
+        TrackingController controller(&n, &nh, robot_ip);
 
         if (mode == "monitor"){
             //read robot state and publish
@@ -45,6 +42,7 @@ int main(int argc, char** argv)
         }
         else if (mode == "command"){
             //control the robot using published joint commands
+            controller.initialize_control_gains();
             ROS_INFO("WARNING: This example will move the robot! \n"
                         "Please make sure to have the user stop button at hand! \n"
                         "Press Enter to continue... \n");

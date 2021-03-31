@@ -1,10 +1,5 @@
 #pragma once
 
-// #include <math.h>
-// #include <stdlib.h>
-// #include <string>
-// #include <vector>
-
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -23,8 +18,10 @@
 class TrackingController : public FrankaController
 {
 public:
-    TrackingController(ros::NodeHandle* nodehandle, std::string robot_ip); 
-    void control_loop();
+    TrackingController(ros::NodeHandle* nh, ros::NodeHandle* pnh, std::string robot_ip); 
+    void command_loop();
+    void initialize_control_gains();
+
 
 private:
     franka::Torques torque_controller_callback(const franka::RobotState& robot_state, franka::Duration period);
@@ -40,10 +37,14 @@ private:
 
     // Vector7f P_ = (Vector7f() << 7.0, 5.0, 5.0, 7.0, 5.0, 6.0, 7.0).finished();
     // Vector7f D_ = (Vector7f() << 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.5).finished();
-    double alpha_q_ = 0.8; //1.0;
-    double alpha_dq_ = 0.01; //0.05; //1.0; 
-    Vector7d Pf_ = (Vector7d() << 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01).finished();
-    
+    double alpha_q_, alpha_dq_;
+    Vector7d Km_, Kp_, Kd_;
+    bool gains_set_;   
+    ////Use these
+    // double alpha_q_ = 0.8; //1.0;
+    // double alpha_dq_ = 0.01; //0.05; //1.0; 
+    // Vector7d Pf_ = (Vector7d() << 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01).finished();
+    ////
 
     // Vector7d P_ = (Vector7d() << 210.0, 200.0, 5.0, 7.0, 5.0, 6.0, 7.0).finished();
     // Vector7d P_ = (Vector7d() << 100.0, 100.0, 100.0, 100.0, 50.0, 50.0, 50.0).finished();    
@@ -79,10 +80,14 @@ private:
     // Vector7d D_ = (Vector7d() << 2.0, 2.0, 2.0, 2.0, 0.2, 0.2, 2.0).finished();
 
 
-    // Vector7d P_ = (Vector7d() << 650.0, 650.0, 650.0, 650.0, 200.0, 100.0, 50.0).finished();    
-    Vector7d P_ = (Vector7d() << 650.0, 650.0, 650.0, 650.0, 100.0, 100.0, 50.0).finished();    
+    // Vector7d P_ = (Vector7d() << 650.0, 650.0, 650.0, 650.0, 200.0, 100.0, 50.0).finished();   
+    ///Use this 
+    // Vector7d P_ = (Vector7d() << 650.0, 650.0, 650.0, 650.0, 100.0, 100.0, 50.0).finished();    
+    //////
     // Vector7d D_ = (Vector7d() << 25.0, 25.0, 25.0, 25.0, 2.0, 2.0, 2.0).finished();
-    Vector7d D_ = (Vector7d() << 30.0, 30.0, 30.0, 30.0, 5.0, 5.0, 2.0).finished();
-
+    
+    //Use this
+    // Vector7d D_ = (Vector7d() << 30.0, 30.0, 30.0, 30.0, 5.0, 5.0, 2.0).finished();
+    /////
 };
 
