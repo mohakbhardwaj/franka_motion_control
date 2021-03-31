@@ -32,8 +32,8 @@ public:
     // franka::Torques torque_controller_callback(const franka::RobotState& robot_state, franka::Duration period);
     // bool read_state_callback(const franka::RobotState& robot_state, franka::Duration period);
     void setJointPositionGoal(std::array<double, 7>& q_goal);
-    void read_loop();
-    virtual void control_loop()=0;
+    void monitor_loop();
+    virtual void command_loop()=0;
 
 
 protected:
@@ -69,14 +69,12 @@ protected:
     Vector7d delta_q_;
     Vector7d curr_q_bel_, curr_dq_bel_, prev_q_bel_; //filtered belief over state
     Vector7d q_des_cmd_, dq_des_cmd_, ddq_des_cmd_;
+    std::array<double, 7> tau_z_; //zero torque for gravity mode
 
     double time_ = 0.0;
-    // double dq_max_;
     bool command_pub_started_;
-
     double prev_time_ = 0.0;
-
-    static constexpr double kDeltaQMotionFinished = 1e-6;
+    // static constexpr double kDeltaQMotionFinished = 1e-6;
 
 
 

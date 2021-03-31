@@ -20,10 +20,10 @@
 #include "franka_controller.h"
 
 
-class TorqueController : public FrankaController
+class TrackingController : public FrankaController
 {
 public:
-    TorqueController(ros::NodeHandle* nodehandle, std::string robot_ip); 
+    TrackingController(ros::NodeHandle* nodehandle, std::string robot_ip); 
     void control_loop();
 
 private:

@@ -3,6 +3,7 @@
 #include <iostream>
 #include <vector>
 #include <functional>
+#include <stdexcept>
 
 #include <franka/exception.h>
 #include <franka/robot.h>
@@ -11,7 +12,7 @@
 #include <ros/ros.h>
 #include <sensor_msgs/JointState.h>
 
-#include "torque_controller.h"
+#include "tracking_controller.h"
 
 int main(int argc, char** argv) 
 {
@@ -23,26 +24,36 @@ int main(int argc, char** argv)
     nh.getParam("robot_ip", robot_ip);
     ROS_INFO("robot_ip: %s", robot_ip.c_str());
     
-    bool debug;
-    nh.getParam("debug", debug);
-    ROS_INFO("Debug mode: %d",  debug);
+    // bool monitor;
+    // nh.getParam("monitor", monitor);
+    // ROS_INFO("monitor mode: %d",  monitor);
+
+    std::string mode;
+    nh.getParam("mode", mode);
+    ROS_INFO('Mode: %d', mode)
 
     try {
         TorqueController controller(&nh, robot_ip);
 
-        if(debug){
+        if (mode == "monitor"){
             //read robot state and publish
-            controller.read_loop();
+            controller.monitor_loop();
         }
-        else{
+        else if (mode == "gravity"){
+            //puts arm in gravity compensation mode
+            controller.gravity_command_loop();
+        }
+        else if (mode == "command"){
             //control the robot using published joint commands
             ROS_INFO("WARNING: This example will move the robot! \n"
                         "Please make sure to have the user stop button at hand! \n"
                         "Press Enter to continue... \n");
             std::cin.ignore();            
-            controller.control_loop();        
+            controller.command_loop();        
         }
-        ROS_INFO("Finished motion.");
+        else{
+            throw std::runtime_error("Invalid operation mode");
+        }
 
 
     } catch (const franka::Exception& e) {

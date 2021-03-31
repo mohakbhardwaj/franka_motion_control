@@ -1,7 +1,7 @@
-#include "torque_controller.h"
+#include "tracking_controller.h"
 
 
-TorqueController::TorqueController(ros::NodeHandle* nodehandle, std::string robot_ip):
+TrackingController::TrackingController(ros::NodeHandle* nodehandle, std::string robot_ip):
                         FrankaController(nodehandle, robot_ip){
 
     tau_d_error_.setZero();
@@ -12,13 +12,11 @@ TorqueController::TorqueController(ros::NodeHandle* nodehandle, std::string robo
 }
 
 
-franka::Torques TorqueController::torque_controller_callback(const franka::RobotState& robot_state, franka::Duration period){
+franka::Torques TrackingController::torque_controller_callback(const franka::RobotState& robot_state, franka::Duration period){
     time_ += period.toSec();
     // publishRobotState(robot_state);
     curr_q_ = Vector7d(robot_state.q.data());
     // curr_dq_ = Vector7d(robot_state.dq.data());
-
-
 
     if(time_ == 0.0){
         //Initial state to hold while waiting for command
@@ -91,7 +89,7 @@ franka::Torques TorqueController::torque_controller_callback(const franka::Robot
     return tau_d_calculated_arr_; //tau_d_rate_limited;
 }
 
-void TorqueController::control_loop(){
+void TrackingController::command_loop(){
     
     while(ros::ok()){
         robot_.control([&](const franka::RobotState& robot_state, franka::Duration period) 
@@ -102,3 +100,4 @@ void TorqueController::control_loop(){
     }
 
 }
+

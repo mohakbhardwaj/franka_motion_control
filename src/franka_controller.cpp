@@ -11,9 +11,10 @@ FrankaController::FrankaController(ros::NodeHandle* nodehandle, std::string robo
     curr_q_des_.setZero();
     curr_dq_des_.setZero();
     curr_ddq_des_.setZero();
-    delta_q_.setZero();
+    // delta_q_.setZero();
     curr_q_bel_.setZero();
     curr_dq_bel_.setZero();
+    tau_z_ = {{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0}};
     
     setDefaultBehavior(robot_);
 
@@ -229,13 +230,11 @@ bool FrankaController::publishJointPosCommand(const franka::JointPositions& join
 //   }
 
 
-void FrankaController::read_loop(){
+void FrankaController::monitor_loop(){
     // double start_nsecs =ros::Time::now().toNSec();
     // franka::Duration period;
     
     robot_.read([&](const franka::RobotState& robot_state) {
-        
-
         // bool ros_ok = read_state_callback(robot_state, period);
         // double nsecs_elapsed = ros::Time::now().toNSec() - start_nsecs;
         
@@ -246,7 +245,17 @@ void FrankaController::read_loop(){
     );
 }
 
+void FrankaController::gravity_command_loop(){
+    
+    while(ros::ok()){
+        robot_.control([&](const franka::RobotState& robot_state, franka::Duration period) 
+                                            -> franka::Torques {            
+            return tau_z_;
+        }
+        );
+    }
 
+}
 
 // bool FrankaController::read_state_callback(const franka::RobotState& robot_state, franka::Duration period){
 //     // motion_generator_callback_integrator(robot_state, period);

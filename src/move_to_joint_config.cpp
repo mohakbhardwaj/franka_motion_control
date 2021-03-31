@@ -25,7 +25,6 @@ int main(int argc, char** argv) {
 
   try {
     franka::Robot robot(robot_ip);
-    setDefaultBehavior(robot);
     std::array<double,7> goal_config_arr;
 
     std::copy(goal_config.begin(), goal_config.begin()+7, goal_config_arr.begin());

@@ -151,22 +151,22 @@ target_include_directories(franka_controller PUBLIC
   include
 )
 
-add_library(torque_controller STATIC
-  src/torque_controller.cpp
+add_library(tracking_controller STATIC
+  src/tracking_controller.cpp
 )
 
-target_link_libraries(torque_controller PUBLIC
+target_link_libraries(tracking_controller PUBLIC
   franka_controller
   ${Franka_LIBRARIES}
   ${catkin_LIBRARIES}
 )
 
-target_include_directories(torque_controller SYSTEM PUBLIC
+target_include_directories(tracking_controller SYSTEM PUBLIC
   ${Franka_INCLUDE_DIRS}
   ${EIGEN3_INCLUDE_DIRS}
   ${catkin_INCLUDE_DIRS}
 )
-target_include_directories(torque_controller PUBLIC
+target_include_directories(tracking_controller PUBLIC
   include
 )
 
@@ -190,18 +190,18 @@ target_include_directories(torque_controller PUBLIC
 # )
 
 
-add_executable(torque_controller_node src/torque_controller_node.cpp)
-target_include_directories(torque_controller_node SYSTEM PUBLIC
+add_executable(tracking_controller_node src/tracking_controller_node.cpp)
+target_include_directories(tracking_controller_node SYSTEM PUBLIC
     ${Franka_INCLUDE_DIRS}
     ${EIGEN3_INCLUDE_DIRS}
     ${catkin_INCLUDE_DIRS}
 )
-target_link_libraries(torque_controller_node torque_controller franka_controller Franka::Franka)
+target_link_libraries(tracking_controller_node tracking_controller franka_controller Franka::Franka)
 
 
 
 #set(NODES
-#  torque_controller_node
+#  tracking_controller_node
 #)
 
 
