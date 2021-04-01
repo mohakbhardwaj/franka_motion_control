@@ -22,14 +22,13 @@ void TrackingController::initialize_control_gains(){
     pnh_.getParam("Kp", Kp);
     pnh_.getParam("Kd", Kd);
     pnh_.getParam("Km", Km);
+    pnh_.getParam("alpha_q", alpha_q_);
+    pnh_.getParam("alpha_dq", alpha_dq_);
     for(size_t i = 0; i < 7; ++i){
         Kp_[i] = Kp[i];
         Kd_[i] = Kd[i];
         Km_[i] = Km[i];   
     }
-    std::cout << Kp_ << std::endl;
-    std::cout << Kd_ << std::endl;
-    std::cout << Km_ << std::endl;
     gains_set_ = true;
 }
 

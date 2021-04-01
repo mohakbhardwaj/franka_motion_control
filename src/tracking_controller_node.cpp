@@ -7,8 +7,6 @@
 
 #include <franka/exception.h>
 #include <franka/robot.h>
-
-
 #include <ros/ros.h>
 #include <sensor_msgs/JointState.h>
 
@@ -22,11 +20,11 @@ int main(int argc, char** argv)
     ros::NodeHandle nh("~");
 
     std::string robot_ip;
-    nh.getParam("robot_ip", robot_ip);
+    n.getParam("robot_ip", robot_ip);
     ROS_INFO("robot_ip: %s", robot_ip.c_str());
     
     std::string mode;
-    nh.getParam("mode", mode);
+    n.getParam("mode", mode);
     ROS_INFO("Mode: %s", mode.c_str());
 
     try {

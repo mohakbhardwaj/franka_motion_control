@@ -3,8 +3,7 @@
 FrankaController::FrankaController(ros::NodeHandle* nh, ros::NodeHandle* pnh, std::string robot_ip):
                         nh_(*nh), pnh_(*pnh), robot_(robot_ip), model_(robot_.loadModel()){   
     
-    initializeSubscribers(); 
-    initializePublishers();
+
     curr_q_.setZero();
     curr_dq_.setZero();
     curr_q_des_.setZero();
@@ -20,18 +19,15 @@ FrankaController::FrankaController(ros::NodeHandle* nh, ros::NodeHandle* pnh, st
     nh_.getParam("joint_states_topic", joint_states_topic_);
     nh_.getParam("joint_command_topic", joint_command_topic_);
     nh_.getParam("robot_joint_command_topic", robot_joint_command_topic_);
+    nh_.getParam("prefix", prefix_);
     pnh_.getParam("joint_names", joint_names_);
-    pnh_.getParam("prefix", prefix_);
 
     joint_states_topic_ = prefix_ + "/" + joint_states_topic_;
     joint_command_topic_ = prefix_ + "/" + joint_command_topic_;
     robot_joint_command_topic_ = prefix_ + "/" + robot_joint_command_topic_;
 
-    std::cout << joint_states_topic_ << std::endl;
-    std::cout << joint_command_topic_ << std::endl;
-    std::cout << robot_joint_command_topic_ << std::endl;
-
-
+    initializeSubscribers(); 
+    initializePublishers();
 
     curr_joint_command_.name.resize(7);
     curr_joint_command_.position.resize(7);

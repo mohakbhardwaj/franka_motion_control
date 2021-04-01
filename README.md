@@ -1,55 +1,55 @@
-## Setting up workspace with ROS + Python 3 
-```
-conda install -c conda-forge ros-actionlib-msgs
-conda install -c conda-forge ros-sensor-msgs
-conda install -c conda-forge ros-geometry-msgs
-```
+Lower level ROS controllers for following joint commands with Franka Emika robot. This code runs on computer attached to the robot with real-time kernel. 
+
+## System Requirements
+
+[1] Ubuntu 18.04
+
+[2] ROS Melodic
+
+[3] `libfranka` v0.7
+
+## Setup
+
+We assume `libfranka` has been setup using the instructions [here](https://frankaemika.github.io/docs/installation_linux.html)
+
+[1] ```mkdir -p ~/catkin_ws/src && cd ~/catkin_ws/src```
+
+[2] ```git clone git@gitlab.com:mohakb/franka_motion_control.git```
+
+[3] ```git checkout refactor```
+
+[4] ```catkin_make -DCMAKE_BUILD_TYPE=Release -DFranka_DIR:PATH=/path/to/libfranka/build``` 
 
 
+(Optional) ``source ~/catkin_ws/src/franka_motion_control/config/franka_setup.sh``. This adds a few home configs as environment variables.
 
-change first line to cmake_minimum_required(VERSION 2.8.3) in geometry/geometry/CMakeLists.txt
+## Examples
+ 
+[1] Moving to Joint Configurations
 
-from geometry/tf/CMakeLists.txt comment the following
-1. ``` 
-    if(NOT CMAKE_CXX_STANDARD)
-    set(CMAKE_CXX_STANDARD 14)
-    endif()
-    ```
-2. ```
-   add_executable(transform_listener_unittest test/transform_listener_unittest.cpp)
-   target_link_libraries(transform_listener_unittest ${PROJECT_NAME} ${GTEST_LIBRARIES})
-   add_rostest(test/transform_listener_unittest.launch)
-   ```
+```roslaunch franka_motion_control move_to_joint_config.launch goal_config:="" robot_ip:="" speed_factor=""```
 
-On perception-pc aka robosalmon
-
-```
-git clone --single-branch --branch melodic-devel https://github.com/mohakbhardwaj/geometry.git
-git clone https://github.com/ros/angles.git
-git clone --single-branch --branch melodic-devel https://github.com/ros/geometry2.git
-```
-
-On robot-pc aka robotuna
-
-```
-git clone --single-branch --branch melodic-devel https://github.com/ros/robot_state_publisher.git 
-git clone --single-branch --branch melodic-devel https://github.com/ros/kdl_parser.git
-```
+If `franka_setup.sh` was sourced, we can use
+```roslaunch franka_motion_control move_to_joint_config.launch goal_config:="${home_1}" robot_ip:="172.16.0.2" speed_factor:="0.2"```
 
 
-## Setting up ROS + Networking
+[2] Monitor Mode
 
+Runs robot in monitor mode where it publishes robot state to a ROS topic.
 
+`roslaunch franka_motion_control monitor_mode.launch`
 
+`rostopic echo /franka_motion_control/joint_states`
 
-## Launching Perception System
+[3] Gravity Compensation Mode
 
-### Realsense Installation
-Deactivate the conda environment before you run the following steps
+Runs robot in gravity compensation mode
 
+`roslaunch franka_motion_control gravity_mode.launch `
 
-[1] Make sure Intel RealSense is connected to the USB 3.0 port on Robosalmon aka perception-pc
+[4] Tracking Controller
 
-[2] ``sudo apt-get install         ros-melodic-realsense2-camera``
+Runs a torque controller that tracks joint position, velocity and acceleration commands sent as sensor_msgs/JointState message.
 
-[3] ``roslaunch realsense2_camera rs_camera.launch``
+`roslaunch franka_motion_control command_mode.launch`
+

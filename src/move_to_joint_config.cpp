@@ -27,7 +27,6 @@ int main(int argc, char** argv) {
     franka::Robot robot(robot_ip);
     setDefaultBehavior(robot);
     std::array<double,7> goal_config_arr;
-
     std::copy(goal_config.begin(), goal_config.begin()+7, goal_config_arr.begin());
     
     MotionGenerator motion_generator(speed_factor, goal_config_arr);
@@ -36,7 +35,7 @@ int main(int argc, char** argv) {
               << "Press Enter to continue..." << std::endl;
     std::cin.ignore();
     robot.control(motion_generator);
-    std::cout << "Finished moving to initial joint configuration. Exiting..." << std::endl;
+    std::cout << "Finished moving to joint configuration. Exiting..." << std::endl;
 
   } catch (const franka::Exception& e) {
     std::cout << e.what() << std::endl;
