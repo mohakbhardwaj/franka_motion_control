@@ -14,7 +14,7 @@ We assume `libfranka` has been setup using the instructions [here](https://frank
 
 [1] ```mkdir -p ~/catkin_ws/src && cd ~/catkin_ws/src```
 
-[2] ```git clone git@gitlab.com:mohakb/franka_motion_control.git```
+[2] ```git clone git@github.com:mohakbhardwaj/franka_motion_control.git```
 
 [3] ```catkin_make -DCMAKE_BUILD_TYPE=Release -DFranka_DIR:PATH=/path/to/libfranka/build``` 
 
