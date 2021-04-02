@@ -16,9 +16,7 @@ We assume `libfranka` has been setup using the instructions [here](https://frank
 
 [2] ```git clone git@gitlab.com:mohakb/franka_motion_control.git```
 
-[3] ```git checkout refactor```
-
-[4] ```catkin_make -DCMAKE_BUILD_TYPE=Release -DFranka_DIR:PATH=/path/to/libfranka/build``` 
+[3] ```catkin_make -DCMAKE_BUILD_TYPE=Release -DFranka_DIR:PATH=/path/to/libfranka/build``` 
 
 
 (Optional) ``source ~/catkin_ws/src/franka_motion_control/config/franka_setup.sh``. This adds a few home configs as environment variables.
