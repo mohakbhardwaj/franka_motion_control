@@ -72,6 +72,7 @@ protected:
     void jointCommandCallback(const sensor_msgs::JointState& msg);
     bool publishRobotState(const franka::RobotState& robot_state);
     bool publishRobotState(const Vector7d& q, const Vector7d& dq);
+    bool publishRobotState(const franka::RobotState& robot_state, const Vector7d& q, const Vector7d& dq);
     bool publishRobotCommand(const franka::RobotState& robot_command);
 
 };

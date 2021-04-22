@@ -82,7 +82,7 @@ franka::Torques TrackingController::torque_controller_callback(const franka::Rob
 
     }
 
-    publishRobotState(curr_q_bel_, curr_dq_bel_);
+    publishRobotState(robot_state, curr_q_bel_, curr_dq_bel_);
     prev_q_bel_ = curr_q_bel_;
 
 

@@ -73,7 +73,7 @@ bool FrankaController::publishRobotState(const franka::RobotState& robot_state){
     for (size_t i = 0; i < curr_robot_state_.position.size(); i++) {
         curr_robot_state_.position[i] = robot_state.q[i];
         curr_robot_state_.velocity[i] = robot_state.dq[i];
-        curr_robot_state_.effort[i] = 0.0; //robot_state.dq_d[i];
+        curr_robot_state_.effort[i] = robot_state.tau_J[i];
     }
     state_publisher_.publish(curr_robot_state_);
     return true;
@@ -85,6 +85,17 @@ bool FrankaController::publishRobotState(const Vector7d& q, const Vector7d& dq){
         curr_robot_state_.position[i] = q[i];
         curr_robot_state_.velocity[i] = dq[i];
         curr_robot_state_.effort[i] = 0.0;
+    }
+    state_publisher_.publish(curr_robot_state_);
+    return true;
+}
+
+bool FrankaController::publishRobotState(const franka::RobotState& robot_state, const Vector7d& q, const Vector7d& dq){
+    curr_robot_state_.header.stamp = ros::Time::now();
+    for (size_t i = 0; i < curr_robot_state_.position.size(); i++) {
+        curr_robot_state_.position[i] = q[i];
+        curr_robot_state_.velocity[i] = dq[i];
+        curr_robot_state_.effort[i] = robot_state.tau_J[i];
     }
     state_publisher_.publish(curr_robot_state_);
     return true;
