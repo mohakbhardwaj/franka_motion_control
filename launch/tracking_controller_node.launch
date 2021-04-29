@@ -7,7 +7,10 @@
   <arg name="joint_states_topic" default="joint_states" />
   <arg name="joint_command_topic" default="joint_command" />
   <arg name="robot_joint_command_topic" default="robot_joint_command" /> 
+  <arg name="load_gripper" default="true" />
+  <arg name="robot_urdf" default="$(find franka_panda_description)/robots/panda_arm_hand.urdf.xacro"/> 
 
+  <param name="robot_description" command="$(find xacro)/xacro $(arg robot_urdf)" />
   <param name="robot_ip" value="$(arg robot_ip)" type="str" />
   <param name="mode" value="$(arg mode)" type="str" />
   <param name="prefix" value="$(arg prefix)" type="str" />
@@ -19,5 +22,17 @@
     <rosparam command="load" file="$(find franka_motion_control)/config/robot_settings.yaml" />
     <rosparam command="load" file="$(find franka_motion_control)/config/control_gains.yaml"/>
   </node>
+
+  <node name="joint_state_publisher" type="joint_state_publisher" pkg="joint_state_publisher" output="screen">
+    <rosparam if="$(arg load_gripper)" param="source_list">[franka_motion_control/joint_states, franka_gripper/joint_states] </rosparam>
+    <rosparam unless="$(arg load_gripper)" param="source_list">[franka_motion_control/joint_states] </rosparam>
+    <param name="rate" value="30"/>
+  </node>
+
+
+  <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher">
+      <param name="publish_frequency" value="30" />
+  </node>
+
 
 </launch>

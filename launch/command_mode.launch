@@ -4,17 +4,14 @@
   <arg name="mode" value="command" />
   <arg name="robot_ip" value="172.16.0.2" />
   <arg name="load_gripper" default="true" />
+  <arg name="robot_urdf" default="$(find franka_panda_description)/robots/panda_arm_hand.urdf.xacro"/> 
 
-  <include file="$(find franka_motion_control)/launch/tracking_controller_node.launch" pass_all_args="true"/>
 
   <include file="$(find franka_gripper)/launch/franka_gripper.launch" if="$(arg load_gripper)">
     <arg name="robot_ip" value="$(arg robot_ip)" />
   </include>
 
-  <node name="joint_state_publisher" type="joint_state_publisher" pkg="joint_state_publisher" output="screen">
-    <rosparam if="$(arg load_gripper)" param="source_list">[franka_motion_control/joint_states, franka_gripper/joint_states] </rosparam>
-    <rosparam unless="$(arg load_gripper)" param="source_list">[franka_motion_control/joint_states] </rosparam>
-    <param name="rate" value="30"/>
-  </node>
+  <include file="$(find franka_motion_control)/launch/tracking_controller_node.launch" pass_all_args="true"/>
+
 
 </launch>

@@ -2,5 +2,13 @@
 
 <launch>
   <arg name="mode" value="gravity" />
+  <arg name="robot_ip" value="172.16.0.2" />
+  <arg name="load_gripper" default="true" />
+  <arg name="robot_urdf" default="$(find franka_panda_description)/robots/panda_arm_hand.urdf.xacro"/> 
+
+  <include file="$(find franka_gripper)/launch/franka_gripper.launch" if="$(arg load_gripper)">
+    <arg name="robot_ip" value="$(arg robot_ip)" />
+  </include>
+
   <include file="$(find franka_motion_control)/launch/tracking_controller_node.launch" pass_all_args="true"/>
 </launch>
