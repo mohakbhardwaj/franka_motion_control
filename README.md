@@ -51,7 +51,7 @@ Runs robot in monitor mode where it publishes robot state to a ROS topic.
 
 Example usage:
 
-```roslaunch franka_motion_control monitor_mode.launch robot_ip:="172.16.0.2" load_gripper:="true" robot_urdf:="$(find franka_panda_description)/robots/panda_arm_hand.urdf.xacro" ```
+```roslaunch franka_motion_control monitor_mode.launch robot_ip:="172.16.0.2" load_gripper:="true" robot_urdf:="$(rospack find franka_panda_description)/robots/panda_arm_hand.urdf.xacro" ```
 
 You can see published joint states using (arm only)
 
