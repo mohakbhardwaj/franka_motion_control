@@ -1,0 +1,7 @@
+<?xml version="1.0" ?>
+
+<launch>
+  <node name="moveit_pose_reaching_node" pkg="franka_motion_control" type="moveit_pose_reaching_node.py">  
+  </node>
+
+</launch>

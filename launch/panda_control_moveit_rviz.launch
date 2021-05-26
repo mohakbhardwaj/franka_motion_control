@@ -4,7 +4,7 @@
   <node pkg="tf2_ros" type="static_transform_publisher" name="virtual_joint_broadcaster_1" args="0 0 0 0 0 0 world panda_link0" />
 
   <arg name="robot_ip" default="172.16.0.2" />
-  <arg name="load_gripper" default="true" />
+  <arg name="load_gripper" default="false" />
   <arg name="launch_rviz" default="true" />
 
 
@@ -16,6 +16,9 @@
   <include file="$(find panda_moveit_config)/launch/panda_moveit.launch">
     <arg name="load_gripper" value="$(arg load_gripper)" />
   </include>
+
+  <node name="moveit_pose_reaching_node" pkg="franka_motion_control" type="moveit_pose_reaching_node.py" />  
+
 
   <include file="$(find panda_moveit_config)/launch/moveit_rviz.launch" if="$(arg launch_rviz)" />
 </launch>
