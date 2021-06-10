@@ -61,7 +61,7 @@ class MoveitReacher(object):
         # self.scene.add_box('table', 2.0, 2.0, 0.2, 0.0, 0.0, 0.03)
 
         # pose: [0.0, 0.0, 0.03, 0, 0, 0, 1.0] # x, y, z, qx, qy, qz, qw
-        # self.move_group_arm.set_planning_time(7.0)
+        self.move_group_arm.set_planning_time(10.0)
         print(self.move_group_arm.get_planning_time())
         #Setup ROS
         self.curr_robot_state = self.robot.get_current_state()
@@ -122,6 +122,7 @@ class MoveitReacher(object):
             
             time_before = rospy.get_time()
             plan = self.move_group_arm.plan()
+            print(plan)
             self.plan_times.append(rospy.get_time() - time_before)
             
             time_before = rospy.get_time()

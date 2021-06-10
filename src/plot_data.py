@@ -50,7 +50,7 @@ ax[1].set_title('Robot Joint Velocities')
 # ax[2].set_title('Filtered v/s raw (positions)')
 # ax[3].set_title('Filtered v/s raw (velocities)')
 # ax[3].set_title('MPC Commanded Joint Positions')
-ax[2].set_title('MPC Commanded Joint Accs')
+# ax[2].set_title('MPC Commanded Joint Accs')
 
 #Load robot model
 # tensor_args = {'device':"cpu", 'dtype':torch.float32}
