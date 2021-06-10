@@ -171,23 +171,43 @@ target_include_directories(tracking_controller PUBLIC
 )
 
 
-#add_library(joint_position_controller STATIC
-#  src/joint_position_controller.cpp
-#)
+add_library(joint_velocity_controller STATIC
+  src/joint_velocity_controller.cpp
+)
 
-#target_link_libraries(joint_position_controller PUBLIC
-#  ${Franka_LIBRARIES}
-#  ${catkin_LIBRARIES}
-#)
+target_link_libraries(joint_velocity_controller PUBLIC
+  franka_controller
+  ${Franka_LIBRARIES}
+  ${catkin_LIBRARIES}
+)
 
-#target_include_directories(joint_position_controller SYSTEM PUBLIC
-#  ${Franka_INCLUDE_DIRS}
-#  ${EIGEN3_INCLUDE_DIRS}
-#  ${catkin_INCLUDE_DIRS}
-#)
-# target_include_directories(joint_position_controller PUBLIC
-#  include
-# )
+target_include_directories(joint_velocity_controller SYSTEM PUBLIC
+  ${Franka_INCLUDE_DIRS}
+  ${EIGEN3_INCLUDE_DIRS}
+  ${catkin_INCLUDE_DIRS}
+)
+target_include_directories(joint_velocity_controller PUBLIC
+  include
+)
+
+add_library(joint_position_controller STATIC
+  src/joint_position_controller.cpp
+)
+
+target_link_libraries(joint_position_controller PUBLIC
+  franka_controller
+  ${Franka_LIBRARIES}
+  ${catkin_LIBRARIES}
+)
+
+target_include_directories(joint_position_controller SYSTEM PUBLIC
+  ${Franka_INCLUDE_DIRS}
+  ${EIGEN3_INCLUDE_DIRS}
+  ${catkin_INCLUDE_DIRS}
+)
+target_include_directories(joint_position_controller PUBLIC
+  include
+)
 
 
 add_executable(tracking_controller_node src/tracking_controller_node.cpp)
@@ -198,7 +218,21 @@ target_include_directories(tracking_controller_node SYSTEM PUBLIC
 )
 target_link_libraries(tracking_controller_node tracking_controller franka_controller Franka::Franka)
 
+add_executable(joint_velocity_controller_node src/joint_velocity_controller_node.cpp)
+target_include_directories(joint_velocity_controller_node SYSTEM PUBLIC
+    ${Franka_INCLUDE_DIRS}
+    ${EIGEN3_INCLUDE_DIRS}
+    ${catkin_INCLUDE_DIRS}
+)
+target_link_libraries(joint_velocity_controller_node joint_velocity_controller franka_controller Franka::Franka)
 
+add_executable(joint_position_controller_node src/joint_position_controller_node.cpp)
+target_include_directories(joint_position_controller_node SYSTEM PUBLIC
+    ${Franka_INCLUDE_DIRS}
+    ${EIGEN3_INCLUDE_DIRS}
+    ${catkin_INCLUDE_DIRS}
+)
+target_link_libraries(joint_position_controller_node joint_position_controller franka_controller Franka::Franka)
 
 #set(NODES
 #  tracking_controller_node

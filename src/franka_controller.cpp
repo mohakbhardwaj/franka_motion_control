@@ -152,6 +152,9 @@ void FrankaController::setDefaultBehavior(franka::Robot& robot) {
 //   robot.setJointImpedance({{3000, 3000, 3000, 2500, 2500, 2000, 2000}});
 //   robot.setJointImpedance({{300, 300, 300, 250, 250, 200, 200}});
 //   robot.setJointImpedance({{30, 30, 30, 25, 25, 20, 20}});
+    robot.setJointImpedance({{2500.0, 2500.0, 1500.0, 1500.0, 1000.0, 900.0, 500.0}});
+    // robot.setJointImpedance({{25.0, 25.0, 15.0, 15.0, 10.0, 9.0, 5.0}});
+
 
 //   robot.setCartesianImpedance({{3000, 3000, 3000, 300, 300, 300}});
 }

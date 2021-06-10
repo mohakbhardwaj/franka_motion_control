@@ -1,0 +1,38 @@
+<launch>
+  <arg name="robot_ip" default="172.16.0.2" />
+  <arg name="mode" default="monitor" />
+  <!-- <param name="robot_description" textfile="/home/mohak/workspace/stochastic_control/content/assets/urdf/franka_description/franka_panda_no_gripper.urdf" /> -->
+  <!-- <param name="robot_description" command="$(find xacro)/xacro $(find franka_panda_description)/robots/panda_arm.urdf.xacro" /> -->
+  <arg name="prefix" default="franka_motion_control" />
+  <arg name="joint_states_topic" default="joint_states" />
+  <arg name="joint_command_topic" default="joint_command" />
+  <arg name="robot_joint_command_topic" default="robot_joint_command" /> 
+  <arg name="load_gripper" default="true" />
+  <arg name="robot_urdf" default="$(find franka_panda_description)/robots/panda_arm_hand.urdf.xacro"/> 
+
+  <param name="robot_description" command="$(find xacro)/xacro $(arg robot_urdf)" />
+  <param name="robot_ip" value="$(arg robot_ip)" type="str" />
+  <param name="mode" value="$(arg mode)" type="str" />
+  <param name="prefix" value="$(arg prefix)" type="str" />
+  <param name="joint_states_topic" value="$(arg joint_states_topic)" type="str" />
+  <param name="joint_command_topic" value="$(arg joint_command_topic)" type="str" />
+  <param name="robot_joint_command_topic" value="$(arg robot_joint_command_topic)" type="str" />
+
+  <node name="joint_position_controller" type="joint_position_controller_node" pkg="franka_motion_control" output="screen">
+    <rosparam command="load" file="$(find franka_motion_control)/config/robot_settings.yaml" />
+    <rosparam command="load" file="$(find franka_motion_control)/config/control_gains.yaml"/>
+  </node>
+
+  <node name="joint_state_publisher" type="joint_state_publisher" pkg="joint_state_publisher" output="screen">
+    <rosparam if="$(arg load_gripper)" param="source_list">[franka_motion_control/joint_states, franka_gripper/joint_states] </rosparam>
+    <rosparam unless="$(arg load_gripper)" param="source_list">[franka_motion_control/joint_states] </rosparam>
+    <param name="rate" value="100"/>
+  </node>
+
+
+  <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher">
+      <param name="publish_frequency" value="100" />
+  </node>
+
+
+</launch>
