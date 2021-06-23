@@ -38,9 +38,25 @@ class MoveitReacher(object):
         # [ 0.1133, -0.0171,  0.9911,  0.0680],
         # [ 0.0000,  0.7055,  0.7087,  0.0000]]
 
-        self.goal_ee_pos_list= [[ 3.8689e-01,  4.4958e-01,  5.9739e-01]]
+
+        self.goal_ee_pos_list= [
+        [ 4.7659e-01,  4.9783e-01,  2.8616e-01],
+        [ 5.7576e-01, -4.7868e-01,  5.7678e-01],
+        [ 5.4563e-01, -4.2102e-01,  2.8616e-01],
+        [ 4.7659e-01,  4.9783e-01,  2.8616e-01],
+        [ 3.0835e-01,  5.2710e-08,  4.9148e-01]]
         
-        self.goal_ee_quat_list = [[ 0.4595,  0.1146, -0.2016, -0.8573]]
+        self.goal_ee_quat_list = [
+        [ 0.1133, -0.0171,  0.9911,  0.0680],
+        [ 0.3932,  0.3132,  0.7399,  0.4470],
+        [ 0.1254,  0.6598,  0.7397,  0.0417],
+        [ 0.1133, -0.0171,  0.9911,  0.0680],
+        [ 0.0000,  0.7055,  0.7087,  0.0000]]
+
+
+        # self.goal_ee_pos_list= [[ 3.8689e-01,  4.4958e-01,  5.9739e-01]]
+        
+        # self.goal_ee_quat_list = [[ 0.4595,  0.1146, -0.2016, -0.8573]]
 
         self.curr_goal_idx = 0
         self.num_goals = len(self.goal_ee_pos_list)
@@ -49,7 +65,7 @@ class MoveitReacher(object):
         self.robot = moveit_commander.RobotCommander()
         self.scene = moveit_commander.PlanningSceneInterface()
         self.move_group_arm = moveit_commander.MoveGroupCommander("panda_arm")
-        # self.move_group_arm.set_planner_id("RRTstarkConfigDefault")
+        self.move_group_arm.set_planner_id("RRTstarkConfigDefault")
         self.move_group_arm.set_max_acceleration_scaling_factor(0.5)
         self.move_group_arm.set_max_velocity_scaling_factor(0.5)
 
@@ -66,7 +82,7 @@ class MoveitReacher(object):
 
         # pose: [0.0, 0.0, 0.03, 0, 0, 0, 1.0] # x, y, z, qx, qy, qz, qw
         self.move_group_arm.set_planning_time(10.0)
-        print(self.move_group_arm.get_planning_time())
+        # print(self.move_group_arm.get_planning_time())
         #Setup ROS
         self.curr_robot_state = self.robot.get_current_state()
         self.curr_robot_state_ros = PoseStamped()

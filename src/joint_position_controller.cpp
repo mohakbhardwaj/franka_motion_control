@@ -2,8 +2,8 @@
 #include "joint_position_controller.h"
 
 
-JointPositionController::JointPositionController(ros::NodeHandle* nh, ros::NodeHandle* pnh, std::string robot_ip):
-                        FrankaController(nh, pnh, robot_ip){
+JointPositionController::JointPositionController(ros::NodeHandle* nh, ros::NodeHandle* pnh, std::string robot_ip, bool set_load):
+                        FrankaController(nh, pnh, robot_ip, set_load){
 
     // tau_d_error_.setZero();
     // tau_d_coriolis_.setZero(); 

@@ -25,7 +25,7 @@
 class FrankaController
 {
 public:
-    FrankaController(ros::NodeHandle* nh, ros::NodeHandle* pnh, std::string robot_ip); 
+    FrankaController(ros::NodeHandle* nh, ros::NodeHandle* pnh, std::string robot_ip, bool set_load); 
     void setDefaultBehavior(franka::Robot& robot);
     void monitor_loop();
     virtual void command_loop()=0;
@@ -45,6 +45,11 @@ protected:
     std::string joint_states_topic_;
     std::string joint_command_topic_;
     std::string robot_joint_command_topic_;
+    bool set_load_;
+    double load_mass_;
+    std::array<double, 3> load_trans_;
+    std::array<double, 9> load_inertia_;
+
 
     ros::NodeHandle nh_, pnh_; 
     ros::Subscriber goal_subscriber_;     

@@ -1,7 +1,7 @@
 #include "franka_controller.h"
 
-FrankaController::FrankaController(ros::NodeHandle* nh, ros::NodeHandle* pnh, std::string robot_ip):
-                        nh_(*nh), pnh_(*pnh), robot_(robot_ip), model_(robot_.loadModel()){   
+FrankaController::FrankaController(ros::NodeHandle* nh, ros::NodeHandle* pnh, std::string robot_ip, bool set_load):
+                        nh_(*nh), pnh_(*pnh), robot_(robot_ip), model_(robot_.loadModel()), set_load_(set_load){   
     
 
     curr_q_.setZero();
@@ -21,6 +21,26 @@ FrankaController::FrankaController(ros::NodeHandle* nh, ros::NodeHandle* pnh, st
     nh_.getParam("robot_joint_command_topic", robot_joint_command_topic_);
     nh_.getParam("prefix", prefix_);
     pnh_.getParam("joint_names", joint_names_);
+
+    if(set_load_){
+        pnh_.getParam("load_mass", load_mass_);
+        std::vector<double> load_trans_vec, load_inertia_vec;
+        pnh_.getParam("load_trans", load_trans_vec);
+        pnh_.getParam("load_inertia", load_inertia_vec);
+
+        for(size_t i = 0; i < load_trans_vec.size(); ++i){
+            load_trans_[i] =  load_trans_vec[i];
+
+        }
+
+        for(size_t i = 0; i < load_inertia_vec.size(); ++i){
+            load_inertia_[i] =  load_inertia_vec[i];
+
+        }
+        robot_.setLoad(load_mass_, load_trans_, load_inertia_);
+
+    }
+
 
     joint_states_topic_ = prefix_ + "/" + joint_states_topic_;
     joint_command_topic_ = prefix_ + "/" + joint_command_topic_;

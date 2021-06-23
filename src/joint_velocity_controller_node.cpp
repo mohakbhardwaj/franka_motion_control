@@ -27,8 +27,12 @@ int main(int argc, char** argv)
     n.getParam("mode", mode);
     ROS_INFO("Mode: %s", mode.c_str());
 
+    std:bool set_load;
+    n.getParam("set_load", set_load);
+    ROS_INFO("Load Added?: %s", set_load ? "true": "false");
+
     try {
-        JointVelocityController controller(&n, &nh, robot_ip);
+        JointVelocityController controller(&n, &nh, robot_ip, set_load);
 
         if (mode == "monitor"){
             //read robot state and publish

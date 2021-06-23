@@ -18,7 +18,7 @@
 class TrackingController : public FrankaController
 {
 public:
-    TrackingController(ros::NodeHandle* nh, ros::NodeHandle* pnh, std::string robot_ip); 
+    TrackingController(ros::NodeHandle* nh, ros::NodeHandle* pnh, std::string robot_ip, bool set_load); 
     void command_loop();
     void initialize_control_gains();
 
