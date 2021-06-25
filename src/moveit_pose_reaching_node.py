@@ -67,7 +67,7 @@ class MoveitReacher(object):
         self.move_group_arm = moveit_commander.MoveGroupCommander("panda_arm")
         self.move_group_arm.set_planner_id("RRTstarkConfigDefault")
         self.move_group_arm.set_max_acceleration_scaling_factor(0.5)
-        self.move_group_arm.set_max_velocity_scaling_factor(0.5)
+        self.move_group_arm.set_max_velocity_scaling_factor(0.5)    
 
         rospy.sleep(2)
         # self.move_group_hand = moveit_commander.MoveGroupCommander("hand")

@@ -30,6 +30,7 @@ FrankaController::FrankaController(ros::NodeHandle* nh, ros::NodeHandle* pnh, st
 
         for(size_t i = 0; i < load_trans_vec.size(); ++i){
             load_trans_[i] =  load_trans_vec[i];
+            std::cout << load_trans_[i] << std::endl;
 
         }
 
