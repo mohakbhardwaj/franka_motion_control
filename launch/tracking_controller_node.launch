@@ -8,7 +8,7 @@
   <arg name="joint_command_topic" default="joint_command" />
   <arg name="robot_joint_command_topic" default="robot_joint_command" /> 
   <arg name="load_gripper" default="true" />
-  <arg name="robot_urdf" default="$(find franka_panda_description)/robots/panda_arm_hand.urdf.xacro"/> 
+  <arg name="robot_urdf" default="$(find franka_panda_description)/robots/panda_arm.urdf.xacro"/> 
   <arg name="set_load" default="false"/>
 
 
