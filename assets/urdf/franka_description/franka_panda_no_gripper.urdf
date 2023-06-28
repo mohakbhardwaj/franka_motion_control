@@ -45,7 +45,7 @@
   <link name="panda_link2">
     <visual>
       <geometry>
-        <mesh filename="package://franka_motion_control/assets/urdf/franka_description/meshes/visual/link2.dae"/>
+        <mesh filename="$(find franka_motion_control)assets/urdf/franka_description/meshes/visual/link2.dae"/>
       </geometry>
     </visual>
     <collision>
