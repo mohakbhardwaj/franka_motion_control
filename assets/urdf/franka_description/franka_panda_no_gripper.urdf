@@ -11,24 +11,24 @@
   <link name="panda_link0">
     <visual>
       <geometry>
-        <mesh filename="package://franka_motion_control/assets/urdf/franka_description/meshes/visual/link0.dae"/>
+        <mesh filename="$(find franka_motion_control)/assets/urdf/franka_description/meshes/visual/link0.dae"/>
       </geometry>
     </visual>
     <collision>
       <geometry>
-        <mesh filename="package://franka_motion_control/assets/urdf/franka_description/meshes/collision/link0.obj"/>
+        <mesh filename="$(find franka_motion_control)/assets/urdf/franka_description/meshes/collision/link0.obj"/>
       </geometry>
     </collision>
   </link>
   <link name="panda_link1">
     <visual>
       <geometry>
-        <mesh filename="package://franka_motion_control/assets/urdf/franka_description/meshes/visual/link1.dae"/>
+        <mesh filename="$(find franka_motion_control)/assets/urdf/franka_description/meshes/visual/link1.dae"/>
       </geometry>
     </visual>
     <collision>
       <geometry>
-        <mesh filename="package://franka_motion_control/assets/urdf/franka_description/meshes/collision/link1.obj"/>
+        <mesh filename="$(find franka_motion_control)/assets/urdf/franka_description/meshes/collision/link1.obj"/>
       </geometry>
     </collision>
   </link>
@@ -66,12 +66,12 @@
   <link name="panda_link3">
     <visual>
       <geometry>
-        <mesh filename="package://franka_motion_control/assets/urdf/franka_description/meshes/visual/link3.dae"/>
+        <mesh filename="$(find franka_motion_control)/assets/urdf/franka_description/meshes/visual/link3.dae"/>
       </geometry>
     </visual>
     <collision>
       <geometry>
-        <mesh filename="package://franka_motion_control/assets/urdf/franka_description/meshes/collision/link3.obj"/>
+        <mesh filename="$(find franka_motion_control)/assets/urdf/franka_description/meshes/collision/link3.obj"/>
       </geometry>
     </collision>
   </link>
