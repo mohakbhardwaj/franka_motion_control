@@ -16,7 +16,7 @@
     </visual>
     <collision>
       <geometry>
-        <mesh filename="package://franka_motion_control/assets/urdf/franka_description/meshes/collision/link0.obj"/>
+        <mesh filename="package://franka_motion_control/assets/urdf/franka_description/meshes/collision/link0.stl"/>
       </geometry>
     </collision>
   </link>
@@ -28,7 +28,7 @@
     </visual>
     <collision>
       <geometry>
-        <mesh filename="package://franka_motion_control/assets/urdf/franka_description/meshes/collision/link1.obj"/>
+        <mesh filename="package://franka_motion_control/assets/urdf/franka_description/meshes/collision/link1.stl"/>
       </geometry>
     </collision>
   </link>
@@ -50,7 +50,7 @@
     </visual>
     <collision>
       <geometry>
-        <mesh filename="$package://franka_motion_control/assets/urdf/franka_description/meshes/collision/link2.obj"/>
+        <mesh filename="$package://franka_motion_control/assets/urdf/franka_description/meshes/collision/link2.stl"/>
       </geometry>
     </collision>
   </link>
@@ -71,7 +71,7 @@
     </visual>
     <collision>
       <geometry>
-        <mesh filename="package://franka_motion_control/assets/urdf/franka_description/meshes/collision/link3.obj"/>
+        <mesh filename="package://franka_motion_control/assets/urdf/franka_description/meshes/collision/link3.stl"/>
       </geometry>
     </collision>
   </link>
@@ -92,7 +92,7 @@
     </visual>
     <collision>
       <geometry>
-        <mesh filename="package://franka_motion_control/assets/urdf/franka_description/meshes/collision/link4.obj"/>
+        <mesh filename="package://franka_motion_control/assets/urdf/franka_description/meshes/collision/link4.stl"/>
       </geometry>
     </collision>
   </link>
@@ -116,7 +116,7 @@
     </visual>
     <collision>
       <geometry>
-        <mesh filename="package://franka_motion_control/assets/urdf/franka_description/meshes/collision/link5.obj"/>
+        <mesh filename="package://franka_motion_control/assets/urdf/franka_description/meshes/collision/link5.stl"/>
       </geometry>
     </collision>
   </link>
@@ -137,7 +137,7 @@
     </visual>
     <collision>
       <geometry>
-        <mesh filename="package://franka_motion_control/assets/urdf/franka_description/meshes/collision/link6.obj"/>
+        <mesh filename="package://franka_motion_control/assets/urdf/franka_description/meshes/collision/link6.stl"/>
       </geometry>
     </collision>
   </link>
@@ -160,7 +160,7 @@
     </visual>
     <collision>
       <geometry>
-        <mesh filename="package://franka_motion_control/assets/urdf/franka_description/meshes/collision/link7.obj"/>
+        <mesh filename="package://franka_motion_control/assets/urdf/franka_description/meshes/collision/link7.stl"/>
       </geometry>
     </collision>
   </link>
@@ -199,14 +199,14 @@
       <origin rpy="-1.57 0.0 0.0" xyz="0 0 0.0"/>
       <geometry>
         <!--box size="0.01 0.01 0.01"/-->
-        <mesh filename="package://franka_motion_control/assets/urdf/franka_description/meshes/visual/hand_gripper.obj"/>
+        <mesh filename="package://franka_motion_control/assets/urdf/franka_description/meshes/visual/hand_gripper.stl"/>
       </geometry>
     </visual>
     <collision>
       <geometry>
         <!--box size="0.01 0.01 0.01"/-->
-        <mesh filename="package://franka_motion_control/assets/urdf/franka_description/meshes/visual/hand_gripper.obj"/>
-        <!--mesh filename="meshes/collision/hand_gripper.obj"/-->
+        <mesh filename="package://franka_motion_control/assets/urdf/franka_description/meshes/visual/hand_gripper.stl"/>
+        <!--mesh filename="meshes/collision/hand_gripper.stl"/-->
       </geometry>
     </collision>
   </link>
