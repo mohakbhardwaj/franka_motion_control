@@ -199,7 +199,7 @@
       <origin rpy="-1.57 0.0 0.0" xyz="0 0 0.0"/>
       <geometry>
         <!--box size="0.01 0.01 0.01"/-->
-        <mesh filename="package://franka_motion_control/assets/urdf/franka_description/meshes/visual/hand_gripper.stl"/>
+        <mesh filename="package://franka_motion_control/assets/urdf/franka_description/meshes/visual/hand_gripper.dae"/>
       </geometry>
     </visual>
     <collision>
