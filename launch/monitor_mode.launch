@@ -4,7 +4,9 @@
   <arg name="mode" value="monitor" />
   <arg name="robot_ip" default="172.16.0.2" />
   <arg name="load_gripper" default="true" />
-  <arg name="robot_urdf" default="$(find franka_panda_description)/robots/panda_arm_hand.urdf.xacro"/> 
+  <!-- <arg name="robot_urdf" default="$(find franka_panda_description)/robots/panda_arm_hand.urdf.xacro"/>  -->
+  <arg name="robot_urdf" default="$(find franka_motion_control)/assets/urdf/franka_description/franka_panda_no_gripper.urdf"/> 
+  <arg name="set_ee_load" default="false"/>
 
   <include file="$(find franka_gripper)/launch/franka_gripper.launch" if="$(arg load_gripper)">
     <arg name="robot_ip" value="$(arg robot_ip)" />

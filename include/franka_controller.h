@@ -30,6 +30,7 @@ public:
     void monitor_loop();
     virtual void command_loop()=0;
     void gravity_command_loop();
+    bool setLoad();
 
 protected:
     using Vector7d = Eigen::Matrix<double, 7, 1, Eigen::ColMajor>;
@@ -66,6 +67,11 @@ protected:
     double time_ = 0.0;
     bool command_pub_started_;
     double prev_time_ = 0.0;
+
+    double load_mass_ = 0.0;
+    std::array<double, 3> F_x_Cload_;
+    std::array<double, 9> load_inertia_;
+
 
     void initializeSubscribers();
     void initializePublishers();

@@ -27,8 +27,25 @@ int main(int argc, char** argv)
     n.getParam("mode", mode);
     ROS_INFO("Mode: %s", mode.c_str());
 
+    bool set_ee_load;
+    nh.getParam("set_ee_load", set_ee_load);
+    ROS_INFO("EE load: %d", set_ee_load);
+
     try {
         TrackingController controller(&n, &nh, robot_ip);
+
+        if (set_ee_load){
+            bool success = controller.setLoad();
+            if (success){
+                ROS_INFO("EE load set successfully");
+
+            }
+            else{
+                ROS_INFO("Error in setting EE load");
+            }
+        }
+
+
 
         if (mode == "monitor"){
             //read robot state and publish

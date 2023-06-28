@@ -156,6 +156,43 @@ void FrankaController::setDefaultBehavior(franka::Robot& robot) {
 //   robot.setCartesianImpedance({{3000, 3000, 3000, 300, 300, 300}});
 }
 
+bool FrankaController::setLoad(){
+    std::vector<double> Fx_C_temp, inertia_temp;
+    
+    pnh_.getParam("load_mass", load_mass_);
+    pnh_.getParam("F_x_Cload", Fx_C_temp);
+    pnh_.getParam("load_inertia", inertia_temp);
+
+    // std::cout << load_mass_ << std::endl;
+
+    for (size_t i =0; i < 9; ++i){
+        load_inertia_[i] = inertia_temp[i];
+    }
+    for (size_t i =0; i < 3; ++i){
+        F_x_Cload_[i] = Fx_C_temp[i];
+    }
+
+    // for (size_t i =0; i < 9; ++i){
+    //     std::cout << load_inertia_[i] << " "; 
+    // }
+    // std::cout << "\n";
+    // std::cout << "trans" << std::endl;
+    // for (size_t i =0; i < 3; ++i){
+    //     std::cout << F_x_Cload_[i] << " "; 
+    // }
+
+    // if (load_mass_ > 0.0){
+    robot_.setLoad(load_mass_, F_x_Cload_, load_inertia_);
+    // }
+    // else{
+    //     ROS_INFO("Load mass is zero. Ignoring...");
+    // }
+    
+
+    return true;
+
+}
+
 
 
 
