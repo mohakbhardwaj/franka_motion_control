@@ -188,7 +188,7 @@
     <!--
     <parent link="panda_link8"/>
     -->
-    <parent link="panda_link8"/>
+    <parent link="panda_link7"/>
     <child link="panda_hand"/>
     <origin rpy="0 0 ${-pi/4}" xyz="0 0 0.107"/>
     <axis xyz="0 0 0"/>
