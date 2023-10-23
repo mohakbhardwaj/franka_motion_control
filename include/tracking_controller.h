@@ -27,7 +27,7 @@ private:
     franka::Torques torque_controller_callback(const franka::RobotState& robot_state, franka::Duration period);
     void saturate_torque(const Vector7d& tau);
 
-    Vector7d tau_d_error_, tau_d_coriolis_, tau_d_inertia_, tau_d_calculated_, prev_cmd_tau_;
+    Vector7d tau_d_error_, tau_d_coriolis_, tau_d_inertia_, tau_d_calculated_, prev_cmd_tau_, ddq_des_feedback_;
     Vector7d curr_q_err_, integral_err_, i_min_, i_thresh_, sat_tau_, delta_cmd_tau_;
     std::array<double, 7> tau_d_calculated_arr_;
 
@@ -42,6 +42,7 @@ private:
     double alpha_q_, alpha_dq_, cmd_dt_;
     Vector7d Km_, Kp_, Kd_, Ki_;
     bool gains_set_;   
+    std::string controller_type_;
     ////Use these
     // double alpha_q_ = 0.8; //1.0;
     // double alpha_dq_ = 0.01; //0.05; //1.0; 

@@ -11,6 +11,7 @@ TrackingController::TrackingController(ros::NodeHandle* nh, ros::NodeHandle* pnh
     tau_d_calculated_.setZero();
     delta_cmd_tau_.setZero();
     prev_cmd_tau_.setZero();
+    ddq_des_feedback_.setZero();
 
     integral_err_.setZero();
     i_min_.setZero();
@@ -39,6 +40,7 @@ void TrackingController::initialize_control_gains(){
 
     pnh_.getParam("alpha_q", alpha_q_);
     pnh_.getParam("alpha_dq", alpha_dq_);
+    pnh_.getParam("controller", controller_type_);
 
     for(size_t i = 0; i < 7; ++i){
         Kp_[i] = Kp[i];
@@ -126,9 +128,6 @@ franka::Torques TrackingController::torque_controller_callback(const franka::Rob
 
     }
 
-    tau_d_inertia_ = inertia_matrix * ddq_des_cmd_;
-    tau_d_inertia_ = Km_.cwiseProduct(tau_d_inertia_);
-
     curr_q_err_= q_des_cmd_ - curr_q_bel_;
         
     // compute integral error
@@ -149,16 +148,25 @@ franka::Torques TrackingController::torque_controller_callback(const franka::Rob
         
     }
 
-    tau_d_error_ = Kp_.cwiseProduct(curr_q_err_) +  Kd_.cwiseProduct(dq_des_cmd_ - curr_dq_bel_) + Ki_.cwiseProduct(integral_err_);
+    if(controller_type_ == "joint_stiffness"){
+        tau_d_inertia_ = inertia_matrix * ddq_des_cmd_;
+        tau_d_inertia_ = Km_.cwiseProduct(tau_d_inertia_);
+        tau_d_error_ = Kp_.cwiseProduct(curr_q_err_) +  Kd_.cwiseProduct(dq_des_cmd_ - curr_dq_bel_) + Ki_.cwiseProduct(integral_err_);
+        tau_d_calculated_ =  tau_d_inertia_ + tau_d_error_ + tau_d_coriolis_;
+        saturate_torque(tau_d_calculated_);
 
-    tau_d_calculated_ =  tau_d_inertia_ + tau_d_error_ + tau_d_coriolis_;
+    }
+    else if(controller_type_ == "inverse_dynamics"){
+        ddq_des_feedback_ = Kp_.cwiseProduct(curr_q_err_) +  Kd_.cwiseProduct(dq_des_cmd_ - curr_dq_bel_) + Ki_.cwiseProduct(integral_err_);
+        ddq_des_cmd_ = ddq_des_cmd_ + ddq_des_feedback_;
+        tau_d_calculated_ =  inertia_matrix * ddq_des_cmd_ + tau_d_coriolis_;
+    }
 
     // for(int i = 0; i < 7; ++i){
     //     std::cout << integral_err_[i] << " ";
     // }
     // std::cout << integral_err_[6] << "\n";
 
-    saturate_torque(tau_d_calculated_);
 
     Eigen::VectorXd::Map(&tau_d_calculated_arr_[0], 7) = tau_d_calculated_;
     
