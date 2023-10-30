@@ -11,11 +11,12 @@ M_PI_4 = np.pi / 4.0
 M_PI_8 = np.pi/8.0
 colors = ['#1b9e77', '#d95f02', '#7570b3', '#e7298a', '#66a61e', '#e6ab02', '#a6761d']
 
-joint_to_increment = 2
-delta_increment = 0.01
+joints_to_increment = [0, 1, 2, 3, 4, 5, 6] #, 4, 5, 6]
+delta_increment = 0.1
 
 q_list = []
 qd_list = []
+tau_list = []
 tstep_list = []
 tstep = 0
 start_t = 0
@@ -27,26 +28,26 @@ def state_sub(msg):
     global tstep, start_t, start_q, goal_q
     q_list.append(msg.position)
     qd_list.append(msg.velocity)
+    tau_list.append(msg.effort)
     if tstep == 0:
         start_q = deepcopy(np.array(msg.position))
         start_t = rospy.get_time()
         goal_q = start_q
-        print(goal_q)
-        goal_q[joint_to_increment] += delta_increment
+        for joint in joints_to_increment:
+            goal_q[joint] += delta_increment
 
     tstep = rospy.get_time() - start_t
     tstep_list.append(tstep)
 
 
 def goal_pub():
-    global start_q, goal_q, goal_qd, joint_to_increment, delta_increment
+    global start_q, goal_q, goal_qd, delta_increment
     pub = rospy.Publisher('franka_motion_control/joint_command', JointState, queue_size=1)
     rate = rospy.Rate(100)
 
     while not rospy.is_shutdown():
         if start_q is not None:
             goal_state = JointState()
-
             goal_state.position = goal_q
             goal_state.velocity = goal_qd
             print("Goal pos: {}, Goal vel: {}".format(goal_q, goal_qd))
@@ -58,20 +59,25 @@ def goal_pub():
     plot()
 
 def plot():
-    global goal_q, goal_qd, q_list, qd_list, joint_to_increment, tstep_list
-    fig, ax = plt.subplots(2,1)
+    global goal_q, goal_qd, q_list, qd_list, tau_list, joints_to_increment, tstep_list
+    fig, ax = plt.subplots(3,1)
     num_pts = len(tstep_list)
     q_list = np.array(q_list)
     qd_list = np.array(qd_list)
+    tau_list = np.array(tau_list)
     if num_pts > 1:
         # for i in range(7):
-        i = joint_to_increment
-        ax[0].plot(tstep_list, [goal_q[i]]*num_pts, linestyle='dashed', color=colors[i], label='joint_{}_des'.format(i))
-        ax[0].plot(tstep_list, q_list[:,i], color=colors[i])
-        ax[1].plot(tstep_list, [goal_qd[i]]*num_pts, linestyle='dashed', color=colors[i])
-        ax[1].plot(tstep_list, qd_list[:,i], color=colors[i])
+        for i in joints_to_increment:
+            ax[0].plot(tstep_list, [goal_q[i]]*num_pts, linestyle='dashed', color=colors[i], label='joint_{}_des'.format(i))
+            ax[0].plot(tstep_list, q_list[:,i], color=colors[i])
+            ax[1].plot(tstep_list, [goal_qd[i]]*num_pts, linestyle='dashed', color=colors[i])
+            ax[1].plot(tstep_list, qd_list[:,i], color=colors[i])
+            ax[2].plot(tstep_list, tau_list[:,i], color=colors[i])
+
         ax[0].set_title('Joint Position')
         ax[1].set_title('Joint Velocity')
+        ax[2].set_title('Joint Effort')
+
         ax[0].legend()
         plt.show()
 
@@ -79,5 +85,5 @@ def plot():
 
 if __name__ == '__main__':
     rospy.init_node('joint_pos_goal_publisher', anonymous=True)
-    state_sub = rospy.Subscriber('franka_motion_control/joint_states', JointState, state_sub)
+    state_sub = rospy.Subscriber('joint_states', JointState, state_sub)
     goal_pub()

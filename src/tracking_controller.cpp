@@ -74,6 +74,7 @@ franka::Torques TrackingController::torque_controller_callback(const franka::Rob
     // publishRobotState(robot_state);
     curr_q_ = Vector7d(robot_state.q.data());
     // curr_dq_ = Vector7d(robot_state.dq.data());
+    curr_effort_ = Vector7d(robot_state.tau_J.data());
 
     if(time_ == 0.0){
         //Initial state to hold while waiting for command
@@ -106,7 +107,7 @@ franka::Torques TrackingController::torque_controller_callback(const franka::Rob
 
     }
 
-    publishRobotState(curr_q_bel_, curr_dq_bel_);
+    publishRobotState(curr_q_bel_, curr_dq_bel_, curr_effort_);
     prev_q_bel_ = curr_q_bel_;
 
 

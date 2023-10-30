@@ -90,6 +90,19 @@ bool FrankaController::publishRobotState(const Vector7d& q, const Vector7d& dq){
     return true;
 }
 
+bool FrankaController::publishRobotState(const Vector7d& q, const Vector7d& dq, const Vector7d& effort){
+    curr_robot_state_.header.stamp = ros::Time::now();
+    for (size_t i = 0; i < curr_robot_state_.position.size(); i++) {
+        curr_robot_state_.position[i] = q[i];
+        curr_robot_state_.velocity[i] = dq[i];
+        curr_robot_state_.effort[i] = effort[i];
+    }
+    state_publisher_.publish(curr_robot_state_);
+    return true;
+}
+
+
+
 bool FrankaController::publishRobotCommand(const franka::RobotState& robot_command){
     curr_robot_joint_command_.header.stamp = ros::Time::now();
     for (size_t i = 0; i < curr_robot_joint_command_.position.size(); i++) {

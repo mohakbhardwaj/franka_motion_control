@@ -2,15 +2,10 @@
 
 <launch>
   <arg name="publish_rate" default="100" />
-  <arg name="franka_robot_description" textfile="/home/mohak/workspace/stochastic_control/content/assets/urdf/franka_description/franka_panda_no_gripper.urdf"
+  <!-- <arg name="franka_robot_description" textfile="/home/mohak/workspace/stochastic_control/content/assets/urdf/franka_description/franka_panda_no_gripper.urdf" /> -->
 
 
-  <!-- <node name="dummy_joint_pos_goal_publisher" type="dummy_joint_pos_goal_publisher" pkg="franka_motion_control" output="screen">
-    <param name="publish_rate" value="$(arg publish_rate)" />
-    <rosparam command="load" file="$(find franka_motion_control)/config/robot_settings.yaml" />
-
-  </node> -->
-  <node name="joint_pos_goal_publisher" type="joint_pos_goal_publisher.py" pkg="franka_motion_control" output="screen">
+  <node name="joint_goal_publisher" type="joint_goal_publisher.py" pkg="franka_motion_control" output="screen">
     <param name="publish_rate" value="$(arg publish_rate)" />
     <rosparam command="load" file="$(find franka_motion_control)/config/robot_settings.yaml" />
   </node>

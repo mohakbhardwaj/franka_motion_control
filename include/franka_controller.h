@@ -59,6 +59,7 @@ protected:
 
     Vector7d curr_q_des_, curr_dq_des_, curr_ddq_des_;
     Vector7d curr_q_, curr_dq_;
+    Vector7d curr_effort_;
     Vector7d delta_q_;
     Vector7d curr_q_bel_, curr_dq_bel_, prev_q_bel_; //filtered belief over state
     Vector7d q_des_cmd_, dq_des_cmd_, ddq_des_cmd_;
@@ -78,6 +79,7 @@ protected:
     void jointCommandCallback(const sensor_msgs::JointState& msg);
     bool publishRobotState(const franka::RobotState& robot_state);
     bool publishRobotState(const Vector7d& q, const Vector7d& dq);
+    bool publishRobotState(const Vector7d& q, const Vector7d& dq, const Vector7d& effort);
     bool publishRobotCommand(const franka::RobotState& robot_command);
 
 };
