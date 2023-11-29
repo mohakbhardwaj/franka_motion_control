@@ -94,9 +94,9 @@ franka::Torques TrackingController::torque_controller_callback(const franka::Rob
         for(size_t i=0; i < 7; ++i){
             if(std::abs(curr_dq_[i]) <= 0.05){
                 curr_dq_[i] = 0.0;
-            }
+            }       
         }
-
+        
         curr_dq_bel_ = alpha_dq_ * curr_dq_ + (1.0 - alpha_dq_) * curr_dq_bel_;
 
         for(size_t i=0; i < 7; ++i){
